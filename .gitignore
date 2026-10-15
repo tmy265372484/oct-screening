@@ -1,0 +1,38 @@
+# ===== 数据集与大文件（这些绝对不要传到仓库）=====
+OCT2017/
+data/
+dataset/
+*.zip
+*.tar.gz
+*.rar
+
+# 模型权重（太大，不入库）
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# 数据图片（数据集原图不入库；README 需要的示例图以后单独用 ! 放行）
+*.jpg
+*.jpeg
+*.png
+
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ===== IDE / 编辑器 =====
+.vscode/
+.idea/
+*.swp
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db
