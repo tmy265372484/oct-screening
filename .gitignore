@@ -1,0 +1,38 @@
+# 数据集与大文件
+OCT2017/
+data/
+dataset/
+*.zip
+*.tar.gz
+*.rar
+
+# 模型权重
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# 数据图片
+*.jpg
+*.jpeg
+*.png
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 系统
+.DS_Store
+Thumbs.db
