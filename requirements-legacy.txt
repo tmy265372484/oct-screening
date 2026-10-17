@@ -1,0 +1,5 @@
+# Optional only: archived TensorFlow train.py / predict.py / grad_cam.py.
+# Require actual TensorFlow weights, not the current torch checkpoints.
+tensorflow>=2.16
+pillow
+numpy

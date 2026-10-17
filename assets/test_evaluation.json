@@ -1,0 +1,120 @@
+{
+  "accuracy": 0.807,
+  "macro_f1": 0.7893651961692632,
+  "per_class": {
+    "CNV": {
+      "precision": 0.7109826589595376,
+      "recall": 0.984,
+      "f1": 0.825503355704698,
+      "support": 250,
+      "predicted_count": 346
+    },
+    "DME": {
+      "precision": 0.889763779527559,
+      "recall": 0.904,
+      "f1": 0.8968253968253967,
+      "support": 250,
+      "predicted_count": 254
+    },
+    "DRUSEN": {
+      "precision": 0.9210526315789473,
+      "recall": 0.42,
+      "f1": 0.576923076923077,
+      "support": 250,
+      "predicted_count": 114
+    },
+    "NORMAL": {
+      "precision": 0.8041958041958042,
+      "recall": 0.92,
+      "f1": 0.8582089552238806,
+      "support": 250,
+      "predicted_count": 286
+    }
+  },
+  "confusion_matrix_actual_rows_predicted_columns": [
+    [
+      246,
+      3,
+      1,
+      0
+    ],
+    [
+      17,
+      226,
+      2,
+      5
+    ],
+    [
+      80,
+      14,
+      105,
+      51
+    ],
+    [
+      3,
+      11,
+      6,
+      230
+    ]
+  ],
+  "class_order": [
+    "CNV",
+    "DME",
+    "DRUSEN",
+    "NORMAL"
+  ],
+  "zero_division_policy": "precision/recall/F1 无定义时记为 0",
+  "test_images": 1000,
+  "generated_at": "2026-10-17T23:04:03+08:00",
+  "evaluation_type": "fixed_checkpoint_local_test_split",
+  "checkpoint": {
+    "filename": "best.pt",
+    "format": "best",
+    "epoch": 18,
+    "best_epoch": 18,
+    "val_acc": 0.7525,
+    "best_val_acc": 0.7525
+  },
+  "checkpoint_sha256": "36712ebe5cd8eb4f4f27dba05bddf18200f7bfd5abe837b78cb337ded0a811da",
+  "checkpoint_file_unchanged": true,
+  "source": {
+    "dataset": "Retinal OCT Images (Kermany2018), locally prepared copy",
+    "split": "test",
+    "directory": "data/OCT/test",
+    "preparation": "本项目本地 test 目录；压缩包原始来源和官方划分未在本次评估中重新核验。",
+    "class_counts": {
+      "CNV": 250,
+      "DME": 250,
+      "DRUSEN": 250,
+      "NORMAL": 250
+    },
+    "patient_independence_verified": false,
+    "patient_independence_note": "尚未核验患者级独立性，也未完成训练/验证/测试图像去重审计。",
+    "clinical_validation": false
+  },
+  "preprocessing": {
+    "loader": "RGB (ImageFolder)",
+    "grayscale_channels": 3,
+    "resize_hw": [
+      160,
+      160
+    ],
+    "random_augmentation": false,
+    "normalization_mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "normalization_std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "device": "cpu",
+  "batch_size": 16,
+  "elapsed_seconds": 62.616,
+  "scope_note": "本地数据集离线评估，不是前瞻性临床验证，不用于证明临床诊断性能。",
+  "selection_note": "使用训练阶段按验证集选出的固定 best.pt；本次未基于测试指标调整参数或重新选模型。",
+  "shared_summary_note": "仅包含汇总统计，不包含原图文件名、患者编号或本机绝对路径。"
+}

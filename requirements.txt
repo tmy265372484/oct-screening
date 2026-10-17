@@ -1,0 +1,8 @@
+# Tested on Python 3.11, torch 2.5.1 / torchvision 0.20.1, Streamlit 1.64.0.
+torch==2.5.1
+torchvision==0.20.1
+streamlit>=1.64,<1.65
+numpy>=1.26,<3
+pillow>=10,<13
+pandas>=2.2,<4
+matplotlib>=3.9,<4

@@ -1,0 +1,61 @@
+{
+  "description": "程序生成的真实训练图像增强样例；不是操作截图或准确率证明。",
+  "augmentation_profile": "mild_oct_v1",
+  "augmentation_config": {
+    "horizontal_flip_probability": 0.5,
+    "rotation_degrees": 10,
+    "translate_fraction": [
+      0.03,
+      0.03
+    ],
+    "scale_range": [
+      0.97,
+      1.03
+    ],
+    "brightness": 0.1,
+    "contrast": 0.1
+  },
+  "input_size": [
+    160,
+    160
+  ],
+  "image_selection": "每类训练目录内按文件名排序的第一张；不披露患者文件名。",
+  "samples": [
+    {
+      "class": "CNV",
+      "random_seeds": [
+        20261017,
+        20261018,
+        20261019
+      ]
+    },
+    {
+      "class": "DME",
+      "random_seeds": [
+        20261117,
+        20261118,
+        20261119
+      ]
+    },
+    {
+      "class": "DRUSEN",
+      "random_seeds": [
+        20261217,
+        20261218,
+        20261219
+      ]
+    },
+    {
+      "class": "NORMAL",
+      "random_seeds": [
+        20261317,
+        20261318,
+        20261319
+      ]
+    }
+  ],
+  "output_size": [
+    1920,
+    1840
+  ]
+}

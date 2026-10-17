@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "purpose": "四类本地示例功能验证，不是独立测试集评估或整体准确率",
+  "generated_at": "2026-10-17T23:11:25+08:00",
+  "model": {
+    "checkpoint": "best.pt",
+    "epoch": 18,
+    "val_acc": 0.7525,
+    "best_epoch": 18,
+    "best_val_acc": 0.7525,
+    "format": "best"
+  },
+  "score_note": "模型分数为四类别 softmax 输出，未经概率校准，不代表患病概率。",
+  "results": [
+    {
+      "example_id": "example-cnv",
+      "dataset_label": "CNV",
+      "predicted_class": "CNV",
+      "predicted_label_cn": "脉络膜新生血管",
+      "model_score": 0.9998301267623901,
+      "probabilities": {
+        "CNV": 0.9998301267623901,
+        "DME": 5.409332288763835e-07,
+        "DRUSEN": 0.0001691709185251966,
+        "NORMAL": 9.477043505512484e-08
+      },
+      "checkpoint": {
+        "filename": "best.pt",
+        "epoch": 18,
+        "val_acc": 0.7525,
+        "best_epoch": 18,
+        "best_val_acc": 0.7525
+      }
+    },
+    {
+      "example_id": "example-dme",
+      "dataset_label": "DME",
+      "predicted_class": "DME",
+      "predicted_label_cn": "黄斑水肿",
+      "model_score": 0.926892101764679,
+      "probabilities": {
+        "CNV": 0.022619623690843582,
+        "DME": 0.926892101764679,
+        "DRUSEN": 0.03435913845896721,
+        "NORMAL": 0.0161291416734457
+      },
+      "checkpoint": {
+        "filename": "best.pt",
+        "epoch": 18,
+        "val_acc": 0.7525,
+        "best_epoch": 18,
+        "best_val_acc": 0.7525
+      }
+    },
+    {
+      "example_id": "example-drusen",
+      "dataset_label": "DRUSEN",
+      "predicted_class": "DRUSEN",
+      "predicted_label_cn": "玻璃膜疣",
+      "model_score": 0.8378958106040955,
+      "probabilities": {
+        "CNV": 0.07647940516471863,
+        "DME": 0.0019451314583420753,
+        "DRUSEN": 0.8378958106040955,
+        "NORMAL": 0.08367961645126343
+      },
+      "checkpoint": {
+        "filename": "best.pt",
+        "epoch": 18,
+        "val_acc": 0.7525,
+        "best_epoch": 18,
+        "best_val_acc": 0.7525
+      }
+    },
+    {
+      "example_id": "example-normal",
+      "dataset_label": "NORMAL",
+      "predicted_class": "NORMAL",
+      "predicted_label_cn": "正常",
+      "model_score": 0.9614161849021912,
+      "probabilities": {
+        "CNV": 5.902448720007669e-06,
+        "DME": 0.0382787249982357,
+        "DRUSEN": 0.00029917407664470375,
+        "NORMAL": 0.9614161849021912
+      },
+      "checkpoint": {
+        "filename": "best.pt",
+        "epoch": 18,
+        "val_acc": 0.7525,
+        "best_epoch": 18,
+        "best_val_acc": 0.7525
+      }
+    }
+  ],
+  "source": "outputs/predictions.json"
+}

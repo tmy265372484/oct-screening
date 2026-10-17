@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "completed_epoch": 50,
+  "target_epochs": 50,
+  "phase": "completed",
+  "completion_verified": true,
+  "best_epoch": 18,
+  "best_val_acc": 0.7525,
+  "final_val_acc": 0.729,
+  "augmentation_start_epoch": 24,
+  "augmentation_profile": "mild_oct_v1",
+  "updated_at": "2026-10-17T22:19:06+08:00",
+  "classes": [
+    "CNV",
+    "DME",
+    "DRUSEN",
+    "NORMAL"
+  ],
+  "history": [
+    {
+      "epoch": 12,
+      "train_loss": null,
+      "train_acc": 0.8239,
+      "val_loss": null,
+      "val_acc": 0.695,
+      "seconds": 926.593,
+      "completed_at": "2026-10-17T11:09:37"
+    },
+    {
+      "epoch": 13,
+      "train_loss": null,
+      "train_acc": 0.821,
+      "val_loss": null,
+      "val_acc": 0.6945,
+      "seconds": 894.193,
+      "completed_at": "2026-10-17T11:24:31"
+    },
+    {
+      "epoch": 14,
+      "train_loss": null,
+      "train_acc": 0.8238,
+      "val_loss": null,
+      "val_acc": 0.6625,
+      "seconds": 937.184,
+      "completed_at": "2026-10-17T11:40:09"
+    },
+    {
+      "epoch": 15,
+      "train_loss": null,
+      "train_acc": 0.8233,
+      "val_loss": null,
+      "val_acc": 0.6385,
+      "seconds": 920.912,
+      "completed_at": "2026-10-17T11:55:30"
+    },
+    {
+      "epoch": 16,
+      "train_loss": null,
+      "train_acc": 0.8249,
+      "val_loss": null,
+      "val_acc": 0.728,
+      "seconds": 895.832,
+      "completed_at": "2026-10-17T12:10:25"
+    },
+    {
+      "epoch": 17,
+      "train_loss": null,
+      "train_acc": 0.8258,
+      "val_loss": null,
+      "val_acc": 0.6735,
+      "seconds": 874.902,
+      "completed_at": "2026-10-17T12:25:00"
+    },
+    {
+      "epoch": 18,
+      "train_loss": null,
+      "train_acc": 0.8233,
+      "val_loss": null,
+      "val_acc": 0.7525,
+      "seconds": 910.08,
+      "completed_at": "2026-10-17T12:40:10"
+    },
+    {
+      "epoch": 19,
+      "train_loss": null,
+      "train_acc": 0.8245,
+      "val_loss": null,
+      "val_acc": 0.726,
+      "seconds": 900.304,
+      "completed_at": "2026-10-17T12:55:11"
+    },
+    {
+      "epoch": 20,
+      "train_loss": null,
+      "train_acc": 0.8258,
+      "val_loss": null,
+      "val_acc": 0.6455,
+      "seconds": 904.029,
+      "completed_at": "2026-10-17T13:10:15"
+    },
+    {
+      "epoch": 21,
+      "train_loss": null,
+      "train_acc": 0.8244,
+      "val_loss": null,
+      "val_acc": 0.637,
+      "seconds": 926.61,
+      "completed_at": "2026-10-17T13:25:41"
+    },
+    {
+      "epoch": 22,
+      "train_loss": null,
+      "train_acc": 0.8259,
+      "val_loss": null,
+      "val_acc": 0.741,
+      "seconds": 971.281,
+      "completed_at": "2026-10-17T13:41:53"
+    },
+    {
+      "epoch": 23,
+      "train_loss": null,
+      "train_acc": 0.833,
+      "val_loss": null,
+      "val_acc": 0.6675,
+      "seconds": 942.214,
+      "completed_at": "2026-10-17T13:57:35"
+    },
+    {
+      "epoch": 24,
+      "train_loss": null,
+      "train_acc": 0.8437,
+      "val_loss": null,
+      "val_acc": 0.7315,
+      "seconds": 1114.614,
+      "completed_at": "2026-10-17T14:16:53"
+    },
+    {
+      "epoch": 25,
+      "train_loss": null,
+      "train_acc": 0.8445,
+      "val_loss": null,
+      "val_acc": 0.6995,
+      "seconds": 1111.131,
+      "completed_at": "2026-10-17T14:35:24"
+    },
+    {
+      "epoch": 26,
+      "train_loss": null,
+      "train_acc": 0.8465,
+      "val_loss": null,
+      "val_acc": 0.7215,
+      "seconds": 1109.841,
+      "completed_at": "2026-10-17T14:53:54"
+    },
+    {
+      "epoch": 27,
+      "train_loss": null,
+      "train_acc": 0.8486,
+      "val_loss": null,
+      "val_acc": 0.7345,
+      "seconds": 1106.167,
+      "completed_at": "2026-10-17T15:12:20"
+    },
+    {
+      "epoch": 28,
+      "train_loss": null,
+      "train_acc": 0.8479,
+      "val_loss": null,
+      "val_acc": 0.7335,
+      "seconds": 1115.648,
+      "completed_at": "2026-10-17T15:30:55"
+    },
+    {
+      "epoch": 29,
+      "train_loss": null,
+      "train_acc": 0.8509,
+      "val_loss": null,
+      "val_acc": 0.718,
+      "seconds": 1124.537,
+      "completed_at": "2026-10-17T15:49:40"
+    },
+    {
+      "epoch": 30,
+      "train_loss": null,
+      "train_acc": 0.85,
+      "val_loss": null,
+      "val_acc": 0.738,
+      "seconds": 1125.884,
+      "completed_at": "2026-10-17T16:08:26"
+    },
+    {
+      "epoch": 31,
+      "train_loss": null,
+      "train_acc": 0.8517,
+      "val_loss": null,
+      "val_acc": 0.742,
+      "seconds": 1104.273,
+      "completed_at": "2026-10-17T16:26:50"
+    },
+    {
+      "epoch": 32,
+      "train_loss": null,
+      "train_acc": 0.852,
+      "val_loss": null,
+      "val_acc": 0.734,
+      "seconds": 1115.085,
+      "completed_at": "2026-10-17T16:45:25"
+    },
+    {
+      "epoch": 33,
+      "train_loss": null,
+      "train_acc": 0.8532,
+      "val_loss": null,
+      "val_acc": 0.73,
+      "seconds": 1107.542,
+      "completed_at": "2026-10-17T17:03:53"
+    },
+    {
+      "epoch": 34,
+      "train_loss": null,
+      "train_acc": 0.8533,
+      "val_loss": null,
+      "val_acc": 0.747,
+      "seconds": 1108.665,
+      "completed_at": "2026-10-17T17:22:21"
+    },
+    {
+      "epoch": 35,
+      "train_loss": null,
+      "train_acc": 0.8538,
+      "val_loss": null,
+      "val_acc": 0.726,
+      "seconds": 1101.715,
+      "completed_at": "2026-10-17T17:40:43"
+    },
+    {
+      "epoch": 36,
+      "train_loss": null,
+      "train_acc": 0.854,
+      "val_loss": null,
+      "val_acc": 0.722,
+      "seconds": 1091.442,
+      "completed_at": "2026-10-17T17:58:55"
+    },
+    {
+      "epoch": 37,
+      "train_loss": null,
+      "train_acc": 0.8546,
+      "val_loss": null,
+      "val_acc": 0.709,
+      "seconds": 1091.281,
+      "completed_at": "2026-10-17T18:17:06"
+    },
+    {
+      "epoch": 38,
+      "train_loss": null,
+      "train_acc": 0.8534,
+      "val_loss": null,
+      "val_acc": 0.713,
+      "seconds": 1128.815,
+      "completed_at": "2026-10-17T18:35:55"
+    },
+    {
+      "epoch": 39,
+      "train_loss": null,
+      "train_acc": 0.8535,
+      "val_loss": null,
+      "val_acc": 0.721,
+      "seconds": 1097.135,
+      "completed_at": "2026-10-17T18:54:12"
+    },
+    {
+      "epoch": 40,
+      "train_loss": null,
+      "train_acc": 0.8545,
+      "val_loss": null,
+      "val_acc": 0.745,
+      "seconds": 1094.202,
+      "completed_at": "2026-10-17T19:12:26"
+    },
+    {
+      "epoch": 41,
+      "train_loss": null,
+      "train_acc": 0.8554,
+      "val_loss": null,
+      "val_acc": 0.717,
+      "seconds": 1100.972,
+      "completed_at": "2026-10-17T19:30:47"
+    },
+    {
+      "epoch": 42,
+      "train_loss": null,
+      "train_acc": 0.8547,
+      "val_loss": null,
+      "val_acc": 0.715,
+      "seconds": 1093.873,
+      "completed_at": "2026-10-17T19:49:01"
+    },
+    {
+      "epoch": 43,
+      "train_loss": null,
+      "train_acc": 0.8545,
+      "val_loss": null,
+      "val_acc": 0.7275,
+      "seconds": 1094.946,
+      "completed_at": "2026-10-17T20:07:16"
+    },
+    {
+      "epoch": 44,
+      "train_loss": null,
+      "train_acc": 0.8556,
+      "val_loss": null,
+      "val_acc": 0.714,
+      "seconds": 1123.946,
+      "completed_at": "2026-10-17T20:26:00"
+    },
+    {
+      "epoch": 45,
+      "train_loss": null,
+      "train_acc": 0.8538,
+      "val_loss": null,
+      "val_acc": 0.728,
+      "seconds": 1117.666,
+      "completed_at": "2026-10-17T20:44:37"
+    },
+    {
+      "epoch": 46,
+      "train_loss": null,
+      "train_acc": 0.8558,
+      "val_loss": null,
+      "val_acc": 0.725,
+      "seconds": 1122.555,
+      "completed_at": "2026-10-17T21:03:20"
+    },
+    {
+      "epoch": 47,
+      "train_loss": null,
+      "train_acc": 0.8548,
+      "val_loss": null,
+      "val_acc": 0.726,
+      "seconds": 1127.857,
+      "completed_at": "2026-10-17T21:22:08"
+    },
+    {
+      "epoch": 48,
+      "train_loss": null,
+      "train_acc": 0.8542,
+      "val_loss": null,
+      "val_acc": 0.722,
+      "seconds": 1141.138,
+      "completed_at": "2026-10-17T21:41:09"
+    },
+    {
+      "epoch": 49,
+      "train_loss": null,
+      "train_acc": 0.8548,
+      "val_loss": null,
+      "val_acc": 0.697,
+      "seconds": 1137.231,
+      "completed_at": "2026-10-17T22:00:06"
+    },
+    {
+      "epoch": 50,
+      "train_loss": 0.4141577220523523,
+      "train_acc": 0.8563056749663717,
+      "val_loss": 0.7883450620770455,
+      "val_acc": 0.729,
+      "seconds": 1140.175,
+      "completed_at": "2026-10-17T22:19:06"
+    }
+  ],
+  "history_available_epochs": [
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50
+  ],
+  "missing_history_epochs": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "sources": [
+    "models/torch_resume/progress.json",
+    "models/torch_resume/training.log",
+    "diagnostics/validation_20261017_134225.json"
+  ],
+  "notes": [
+    "本文件是本次本地训练的脱敏真实记录，不包含患者文件名、PID 或绝对路径。",
+    "history 仅包含 training.log 的完整轮次完成记录；缺失轮次不补造。",
+    "完成行准确率保留日志精度；第50轮的损失与准确率使用 progress.json 完整精度。",
+    "历史损失未逐轮记录，缺失值为 null；不能据此绘制完整损失曲线。",
+    "第24轮开始启用轻量数据增强，此次训练不能单独作为公平的增强消融实验。",
+    "验证集结果用于模型选择，不是独立测试集结果。",
+    "混淆矩阵来自第18轮最佳模型在2000张验证图上的CPU复核；旧诊断的 latest 第21轮结果未当作最终第50轮结果。"
+  ],
+  "best_confusion_matrix": [
+    [
+      449,
+      21,
+      20,
+      10
+    ],
+    [
+      50,
+      359,
+      14,
+      77
+    ],
+    [
+      127,
+      28,
+      225,
+      120
+    ],
+    [
+      16,
+      9,
+      3,
+      472
+    ]
+  ],
+  "best_confusion_matrix_epoch": 18,
+  "best_confusion_matrix_source": "validation",
+  "best_confusion_matrix_axes": "actual_rows_predicted_columns",
+  "validation_images": 2000
+}
