@@ -1,0 +1,49 @@
+<style>
+/* App-owned presentation classes; native controls remain keyboard accessible. */
+[data-testid="stMainBlockContainer"]{padding:2.5rem 2rem 2rem;max-width:2100px}
+[data-testid="stSidebar"]{min-width:230px;max-width:230px}
+[data-testid="stSidebarHeader"] img{height:58px!important;width:190px!important;max-width:190px;object-fit:contain}
+.workspace-heading{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #dbe4ed;padding:2px 0 23px;margin-bottom:24px}
+.eyebrow{color:#718498;font-size:10px;letter-spacing:2px;font-weight:700}
+.workspace-heading h1{font-size:29px;letter-spacing:-.8px;margin:8px 0 4px;color:#15324b;font-weight:650}
+.workspace-heading p{font-size:13px;color:#7b8b9a;margin:0}
+.local-badge{font-size:12px;color:#537069;border:1px solid #dce9e5;border-radius:20px;padding:7px 13px;background:#f6fbf9}
+.local-badge i{display:inline-block;background:#36a386;border-radius:50%;width:6px;height:6px;margin-right:7px}
+.brand{display:flex;gap:12px;align-items:center;margin:12px 0 30px;font-size:25px;font-weight:650;color:#eef6ff}
+.brand-symbol{width:40px;height:40px;border:1px solid #557995;border-radius:12px;text-align:center;line-height:37px;color:#7ed8d1;font-size:33px}
+.brand small{display:block;font-size:10px;letter-spacing:3px;color:#91aec5}
+.brand p{font-size:11px;font-weight:400;letter-spacing:1px;margin:8px 0 0;color:#a4b9cc}
+.sidebar-note{margin-top:90px;border-top:1px solid #36506a;padding-top:24px;color:#b8ccdc;font-size:13px}
+.sidebar-note p,.sidebar-note small{font-size:11px;color:#849eb6}
+.image-viewport{background:#08121e;border:1px solid #263b4d;border-radius:6px;overflow:hidden}
+.viewport-label{height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;color:#d4e0eb;font-size:11px;background:#142233}
+.viewport-label span+span{color:#7f95aa;font-size:10px}
+.image-scroll{height:430px;overflow:auto;background:#050b13;scrollbar-color:#3b536c #0d1722}
+.image-stage{display:flex;align-items:center;justify-content:center;min-width:100%;min-height:100%}
+.image-stage img{width:100%;height:100%;object-fit:contain;display:block}
+.viewport-foot{display:flex;justify-content:space-between;padding:11px 14px;color:#758da5;font-size:10px;letter-spacing:1px;background:#101d2c}
+.viewer-legend{font-size:11px;display:flex;align-items:center;gap:8px;color:#728399;padding:13px 0}
+.viewer-legend>span:last-child{margin-left:auto}
+.heat-scale{display:inline-block;width:65px;height:5px;border-radius:6px;background:linear-gradient(90deg,#2848c4,#2bd5db,#ffe045,#e25132)}
+.empty-view{height:520px;border-radius:8px;background:radial-gradient(ellipse at 50% 40%,#1b324a,#0a1727 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#cbd8e5;border:1px solid #2c4257}
+.scan-glyph{color:#72b8c5;border:1px solid #38536b;width:90px;height:90px;line-height:87px;text-align:center;border-radius:24px;font-size:65px;margin-bottom:27px}
+.empty-view h2{font-size:22px;font-weight:500;color:#e1eaf2;margin:0 0 12px}
+.empty-view p{font-size:13px;color:#879db4;margin:0}
+.empty-flow{display:flex;gap:18px;margin-top:45px;font-size:11px;color:#91a8c0}
+.empty-flow b{color:#416078}
+.finding{padding:20px 0 16px}
+.finding>span{font-size:11px;color:#6e8298}
+.finding h2{font-size:23px;font-weight:650;color:#173850;margin:8px 0 14px}
+.finding-code{display:flex;justify-content:space-between;align-items:center;color:#658099;font-size:12px}
+.finding-code strong{color:#147a8b;font-size:32px;font-weight:600;letter-spacing:-1px}
+.finding p{font-size:10px;color:#8292a2;margin:5px 0 0}
+.score-label{display:flex;justify-content:space-between;font-size:11px;color:#536c82;margin-bottom:7px}
+.score-label b{font-weight:500}
+.score-track{height:5px;background:#edf2f6;border-radius:5px;margin-bottom:12px;overflow:hidden}
+.score-track i{display:block;height:100%;background:#318a9e;border-radius:5px}
+.pending-result{padding:30px 0 70px}
+.pending-result span{font-size:11px;color:#7b8ea2;background:#edf2f6;border-radius:4px;padding:5px 10px}
+.pending-result h3{font-size:17px;color:#425d75;margin-top:24px}
+.pending-result p{font-size:13px;line-height:1.9;color:#8a9aaa}
+@media(max-width:1500px){.image-scroll{height:390px}.viewport-label{padding:0 10px;font-size:10px}.viewport-label span+span{display:none}.viewer-legend{flex-wrap:wrap}.viewer-legend>span:last-child{margin-left:0}.finding h2{font-size:20px}}
+</style>

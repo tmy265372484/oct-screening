@@ -1,25 +1,26 @@
-"""Local desktop OCT research workstation. Run with streamlit, never trains."""
+"""User-facing desktop OCT workspace. Research lives in research_app.py."""
 from __future__ import annotations
-
+import base64
 from datetime import datetime
-import json
+from html import escape
 from pathlib import Path
 import uuid
 
-import pandas as pd
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageEnhance
 import streamlit as st
 
-from app_support import ROOT, decode_image, image_sha, png_bytes, public_prediction, training_summary
+from app_support import ROOT, decode_image, image_sha, png_bytes, public_prediction
 from config import CLASS_CN, CLASS_NAMES
 from grad_cam_torch import GradCAMError, colorize_heatmap, generate_gradcam
-from predict_torch import OCTPredictor, SCORE_NOTE
+from predict_torch import OCTPredictor
 from reporting import build_report_html, build_report_markdown
 
-st.set_page_config(page_title="眸析 · OCT 筛查工作台", page_icon=":material/visibility:",
+st.set_page_config(page_title="眸析 · OCT 影像工作站", page_icon=":material/visibility:",
                    layout="wide", initial_sidebar_state="expanded")
 st.session_state.setdefault("records", [])
 st.session_state.setdefault("active_record", None)
+st.html((ROOT / "assets" / "workstation.css").read_text(encoding="utf-8"))
 
 
 @st.cache_resource(max_entries=2, show_spinner=False)
@@ -28,311 +29,258 @@ def get_predictor(path: str, modified_ns: int) -> OCTPredictor:
 
 
 def model_path() -> Path:
-    return ROOT / "models" / "torch_resume" / st.session_state.get("checkpoint_choice", "best.pt")
+    return ROOT / "models" / "torch_resume" / "best.pt"
 
 
-def checkpoint_status():
-    summary = training_summary()
-    with st.sidebar:
-        st.divider()
-        st.caption("推理模型")
-        st.selectbox("检查点", ["best.pt", "latest.pt"], key="checkpoint_choice",
-                     help="默认最佳验证检查点；切换不会训练或覆盖文件。")
-        st.caption("CPU 本地推理 · ResNet50 · 160 × 160")
-        if summary:
-            st.caption(f"训练完成 {summary.get('completed_epoch', '—')} 轮 · 最佳第 {summary.get('best_epoch', '—')} 轮")
-        st.caption("研究演示版本 / 结果待专业人员复核")
+def image_uri(image):
+    return "data:image/png;base64," + base64.b64encode(png_bytes(image)).decode("ascii")
 
 
-def metrics_strip():
-    info = training_summary()
-    cols = st.columns(4)
-    cols[0].metric("分析范围", "4 类 OCT")
-    cols[1].metric("训练完成", f"{info.get('completed_epoch', '—')} / {info.get('target_epochs', '—')} 轮")
-    value = info.get("best_val_acc")
-    cols[2].metric("最佳验证准确率", f"{value:.2%}" if value is not None else "未提供")
-    cols[3].metric("本会话分析", f"{len(st.session_state.records)} 例")
+def banner(title, subtitle):
+    st.html(f'<div class="workspace-heading"><div><div class="eyebrow">MOUXI / RETINAL IMAGING</div>'
+            f'<h1>{escape(title)}</h1><p>{escape(subtitle)}</p></div>'
+            '<span class="local-badge"><i></i> 本机影像处理</span></div>')
 
 
-def report_downloads(record, prefix):
-    with st.container(horizontal=True):
-        st.download_button("下载 HTML 报告", build_report_html(record),
-                           file_name=f"{record['case_id']}.html", mime="text/html",
-                           icon=":material/download:", key=f"{prefix}_html")
+def downloads(record, prefix):
+    st.download_button("导出完整报告", build_report_html(record),
+                       file_name=record["case_id"] + ".html", mime="text/html",
+                       icon=":material/download:", width="stretch", type="primary", key=prefix+"_html")
+    with st.popover("更多导出", icon=":material/more_horiz:", width="stretch"):
         st.download_button("下载文字报告", build_report_markdown(record),
-                           file_name=f"{record['case_id']}.md", mime="text/markdown",
-                           key=f"{prefix}_md")
+                           file_name=record["case_id"]+".md", mime="text/markdown", key=prefix+"_md")
+        if record.get("overlay") is not None:
+            st.download_button("保存关注叠加图", png_bytes(record["overlay"]),
+                               file_name=record["case_id"]+"-attention.png", mime="image/png", key=prefix+"_cam")
+    st.caption("报告含原图、关注图与备注，可在浏览器中打印为 PDF。")
+
+
+def analyze(payload, source_name, source):
+    checkpoint = model_path()
+    image = decode_image(payload)
+    predictor = get_predictor(str(checkpoint), checkpoint.stat().st_mtime_ns)
+    prediction = public_prediction(predictor.predict(image))
+    cam, cam_error = None, None
+    try:
+        cam = generate_gradcam(predictor, image)
+    except GradCAMError as error:
+        cam_error = str(error)
+    original = image.convert("L").convert("RGB")
+    original.thumbnail((1280, 1280))
+    heatmap, overlay = None, None
+    if cam:
+        heatmap = np.asarray(Image.fromarray(cam["heatmap"]).resize(
+            original.size, Image.Resampling.BILINEAR), dtype=np.float32).copy()
+        overlay = Image.blend(original, colorize_heatmap(heatmap), .45)
+    record = dict(case_id="OCT-"+datetime.now().strftime("%Y%m%d-%H%M%S-")+uuid.uuid4().hex[:4],
+                  created_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+                  source_name=source_name, source_sha256=image_sha(payload),
+                  prediction=prediction, original=original, overlay=overlay, heatmap=heatmap,
+                  cam_error=cam_error, note="", input_kind=source)
+    st.session_state.records = (st.session_state.records + [record])[-5:]
+    st.session_state.active_record = record
+    # Viewing parameters are per analysis; they never affect inference.
+    for key in ("cam_alpha", "view_mode", "view_zoom", "view_brightness"):
+        st.session_state.pop(key, None)
+    st.rerun()
+
+
+def canvas(image, title, zoom=1.0, brightness=1.0):
+    adjusted = ImageEnhance.Brightness(image).enhance(brightness)
+    st.html(f'<section class="image-viewport"><div class="viewport-label"><span>{escape(title)}</span>'
+            f'<span>{image.width} × {image.height}</span></div>'
+            f'<div class="image-scroll" tabindex="0" aria-label="{escape(title)}，放大后可滚动查看">'
+            f'<div class="image-stage" style="width:{zoom*100:.0f}%;height:{zoom*100:.0f}%">'
+            f'<img alt="{escape(title)}" src="{image_uri(adjusted)}"></div></div>'
+            '<div class="viewport-foot">OCT · 单张切片<span>眸析 MOUXI</span></div></section>')
+
+
+def viewer(record=None, preview=None):
+    with st.container(key="viewer"):
+        a, b = st.columns([2, 1], vertical_alignment="center")
+        with a:
+            mode = st.segmented_control("阅片布局", ["双图对照", "原始影像", "关注叠加"],
+                                        default="双图对照", key="view_mode", label_visibility="collapsed") or "双图对照"
+        with b:
+            with st.popover("显示调整", icon=":material/tune:", width="stretch"):
+                st.slider("显示放大", 1.0, 3.0, 1.0, .25, key="view_zoom")
+                st.slider("显示亮度", .5, 1.8, 1.0, .1, key="view_brightness")
+                st.caption("仅调整阅片显示；放大后可滚动浏览。报告保留标准亮度、完整视野。")
+        zoom = st.session_state.get("view_zoom", 1.0)
+        bright = st.session_state.get("view_brightness", 1.0)
+        if record:
+            alpha = st.slider("关注图强度", 0.0, .8, .45, .05, key="cam_alpha",
+                              disabled=record["heatmap"] is None)
+            if record["heatmap"] is not None:
+                record["overlay"] = Image.blend(record["original"], colorize_heatmap(record["heatmap"]), alpha)
+            if mode == "双图对照":
+                l, r = st.columns(2, gap="xsmall")
+                with l:
+                    canvas(record["original"], "01 / 原始影像", zoom, bright)
+                with r:
+                    if record["overlay"] is not None:
+                        canvas(record["overlay"], "02 / AI 关注区域", zoom, bright)
+                    else:
+                        st.warning("本次未能生成关注图，分类结果仍可查看。")
+            else:
+                picture = record["original"] if mode == "原始影像" else record["overlay"]
+                if picture is not None:
+                    canvas(picture, mode, zoom, bright)
+                else:
+                    st.warning("本次未能生成关注图。")
+            st.html('<div class="viewer-legend"><span class="heat-scale"></span>低关注 → 高关注'
+                    '<span>颜色表示模型关注程度，不是病灶边界。</span></div>')
+            st.caption(f"当前影像：{record['source_name']} · {record['created_at'][:19].replace('T', ' ')}")
+        elif preview is not None:
+            canvas(preview.convert("L").convert("RGB"), "已导入 / 等待分析", zoom, bright)
+            st.caption("影像已就绪，点击左侧「开始分析」查看筛查提示与关注区域。")
+        else:
+            st.html('<div class="empty-view"><div class="scan-glyph">◎</div>'
+                    '<h2>从一张 OCT 影像开始</h2><p>导入影像，查看筛查提示与模型关注区域</p>'
+                    '<div class="empty-flow"><span>01 导入影像</span><b>→</b><span>02 对照阅片</span>'
+                    '<b>→</b><span>03 导出报告</span></div></div>')
+            st.caption("支持 JPEG / PNG 单张 OCT 切片。没有影像时，可在左侧选择「体验示例」。")
+
+
+def result_panel(record):
+    with st.container(border=True, key="result"):
+        st.markdown("#### 筛查结果")
+        if record is None:
+            st.html('<div class="pending-result"><span>等待分析</span><h3>筛查提示将在此显示</h3>'
+                    '<p>完成分析后，可查看分类分数、填写备注并导出影像报告。</p></div>')
+            return
+        pred = record["prediction"]
+        st.badge("待专业人员复核", color="orange", icon=":material/pending:")
+        st.html(f'<div class="finding"><span>影像分类提示</span><h2>{escape(pred["predicted_label_cn"])}</h2>'
+                f'<div class="finding-code">{escape(pred["predicted_class"])}'
+                f'<strong>{pred["model_score"]:.2%}</strong></div><p>模型匹配分数 · 不代表患病概率</p></div>')
+        with st.expander("查看全部类别分数", expanded=True):
+            score_rows = []
+            for name in sorted(CLASS_NAMES, key=lambda c: pred["probabilities"][c], reverse=True):
+                value = pred["probabilities"][name]
+                score_rows.append(f'<div class="score-label"><span>{escape(CLASS_CN[name])}</span><b>{value:.2%}</b></div>'
+                                  f'<div class="score-track"><i style="width:{value*100:.3f}%"></i></div>')
+            st.html("".join(score_rows))
+        if pred["predicted_class"] == "NORMAL":
+            st.caption("本图更接近正常类别，仍不能排除其他异常。请结合完整检查判断。")
+        else:
+            st.caption("请结合完整 OCT 扫描与临床检查复核，单张影像分类不等于确诊。")
+        record["note"] = st.text_area("阅片备注", value=record["note"], height=90, max_chars=1000,
+                                     placeholder="记录需要进一步复核的影像表现…", key="note_"+record["case_id"])
+        downloads(record, "screen")
 
 
 def screening():
-    st.caption("影像工作台 / OCT 单图辅助筛查")
-    metrics_strip()
-    st.divider()
-    controls, images = st.columns([1, 3], gap="large")
-    payload = None
-    source_name = ""
-    with controls:
-        st.subheader("检查影像", icon=":material/upload_file:")
-        source = st.radio("输入方式", ["内置示例", "上传影像"], horizontal=True, key="source_choice")
-        if source == "内置示例":
-            category = st.selectbox("示例类别", CLASS_NAMES, format_func=lambda x: f"{x} · {CLASS_CN[x]}", key="example_class")
-            sample = ROOT / "assets" / "demo" / f"{category}.png"
-            if sample.is_file():
-                payload, source_name = sample.read_bytes(), sample.name
-            else:
-                st.info("示例文件缺失，请上传 JPEG / PNG。")
-            st.caption("示例仅展示功能，标签不参与推理，不能代替测试集评估。")
-        else:
-            upload = st.file_uploader("上传 OCT 切片", type=["jpg", "jpeg", "png"],
+    banner("影像工作台", "导入 · 对照阅片 · 辅助筛查 · 报告")
+    controls, images, results = st.columns([1.05, 3.4, 1.4], gap="medium")
+    payload, preview, source_name = None, None, ""
+    with controls, st.container(border=True, key="import"):
+        st.markdown("#### 检查影像")
+        source = st.segmented_control("影像来源", ["上传影像", "体验示例"], default="上传影像",
+                                      key="source_choice", label_visibility="collapsed") or "上传影像"
+        if source == "上传影像":
+            upload = st.file_uploader("选择 OCT 影像", type=["jpg", "jpeg", "png"],
                                       max_upload_size=10, key="oct_upload")
             if upload:
                 payload, source_name = upload.getvalue(), Path(upload.name).name
+        else:
+            category = st.selectbox("示例影像", CLASS_NAMES, format_func=lambda c: CLASS_CN[c], key="example_class")
+            sample = ROOT / "assets" / "demo" / f"{category}.png"
+            if sample.is_file():
+                payload, source_name = sample.read_bytes(), sample.name
+            st.caption("演示影像 · 非当前就诊者资料")
         if payload:
             try:
                 preview = decode_image(payload)
                 st.image(preview, width="stretch")
-                st.caption(f"{preview.width} × {preview.height} px · {len(payload) / 1024:.0f} KB")
+                st.caption(f"{source_name} · {preview.width} × {preview.height} px")
             except ValueError as error:
                 st.error(str(error))
                 payload = None
-        checkpoint = model_path()
-        if not checkpoint.is_file():
-            st.warning("缺少检查点。请将可信的 best.pt 放到 models/torch_resume/，详见使用说明。")
-        run = st.button("开始分析", type="primary", icon=":material/analytics:", width="stretch",
-                        disabled=payload is None or not checkpoint.is_file(), key="run_analysis")
-        st.caption("图像 → 四类模型分数 → Grad-CAM → 复核报告")
-        st.caption("上传图仅保留在本浏览器会话内存中；不会发往第三方。")
-    if run:
-        try:
-            with st.spinner("正在执行本地推理与 Grad-CAM…"):
-                image = decode_image(payload)
-                predictor = get_predictor(str(checkpoint), checkpoint.stat().st_mtime_ns)
-                prediction = public_prediction(predictor.predict(image))
-                cam, cam_error = None, None
-                try:
-                    cam = generate_gradcam(predictor, image)
-                except GradCAMError as error:
-                    cam_error = str(error)
-                display_original = image.convert("L").convert("RGB")
-                display_original.thumbnail((1280, 1280))
-                display_heatmap = None
-                display_overlay = None
-                if cam:
-                    import numpy as np
-                    display_heatmap = np.asarray(Image.fromarray(cam["heatmap"]).resize(
-                        display_original.size, Image.Resampling.BILINEAR), dtype=np.float32).copy()
-                    display_overlay = Image.blend(display_original, colorize_heatmap(display_heatmap), .45)
-                record = {
-                    "case_id": "OCT-" + datetime.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:4],
-                    "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-                    "source_name": source_name, "source_sha256": image_sha(payload),
-                    "prediction": prediction, "original": display_original,
-                    "overlay": display_overlay,
-                    "heatmap": display_heatmap, "cam_error": cam_error,
-                    "note": "", "input_kind": source,
-                }
-                # Bound per-session memory even for large uploads.
-                st.session_state.records = (st.session_state.records + [record])[-5:]
-                st.session_state.active_record = record
-                st.rerun()
-        except (ValueError, RuntimeError, OSError) as error:
-            st.error(f"分析未完成：{error}")
+        if not model_path().is_file():
+            st.warning("分析服务未就绪，请联系系统维护人员。")
+        if st.button("开始分析", key="run_analysis", type="primary", icon=":material/auto_awesome:",
+                     width="stretch", disabled=payload is None or not model_path().is_file()):
+            try:
+                with st.spinner("正在分析影像，请稍候…"):
+                    analyze(payload, source_name, source)
+            except (ValueError, RuntimeError, OSError) as error:
+                st.error(f"分析未完成：{error}")
+        st.caption("单张 JPEG / PNG · 最大 10 MB")
+        st.divider()
+        st.markdown("**当前工作区**")
+        st.caption(f"本次会话已分析 {len(st.session_state.records)} 张")
+        st.caption("影像在本机处理，不发送第三方。最近 5 次结果暂存于本会话，请及时导出报告。")
+    record = st.session_state.active_record
     with images:
-        record = st.session_state.active_record
-        if record is None:
-            st.subheader("阅片与结果", icon=":material/monitor:")
-            st.info("选择示例或上传影像，然后点击‘开始分析’。这里将并排展示原图、模型关注区域和四类结果。")
-            st.caption("支持 JPEG / PNG 单张切片；此版本不进行视网膜层分割或病灶面积测量。")
-            return
-        prediction = record["prediction"]
-        st.subheader("阅片与结果", icon=":material/monitor:")
-        st.caption(f"{record['case_id']} · {record['created_at']} · {record['source_name']}")
-        if payload is not None and image_sha(payload) != record["source_sha256"]:
-            st.warning("当前显示上一次分析结果。新选择的图像需点击‘开始分析’。")
-        if prediction["checkpoint"]["filename"] != checkpoint.name:
-            st.warning("模型选择已改变。下方仍是原检查点的结果，需重新分析才能更新。")
-        left, middle, right = st.columns([1, 1, 1.05], gap="medium")
-        with left, st.container(border=True):
-            st.markdown("**01 · OCT 原图**")
-            st.image(record["original"], width="stretch")
-            st.caption("预览最长边不超过 1280 px；推理时灰度化并缩放至 160 × 160。")
-        with middle, st.container(border=True):
-            st.markdown("**02 · 模型关注区域**")
-            if record["heatmap"] is not None:
-                alpha = st.slider("热图透明度", 0.0, 0.8, 0.45, 0.05, key="cam_alpha")
-                overlay = Image.blend(record["original"], colorize_heatmap(record["heatmap"]), alpha)
-                record["overlay"] = overlay
-                st.image(overlay, width="stretch")
-                st.caption(f"Grad-CAM / layer4 · 目标 {prediction['predicted_class']}")
-                st.caption("蓝 → 红表示相对响应增强；不代表病灶边界。")
-                st.download_button("保存叠加图", png_bytes(overlay), file_name=record["case_id"] + "-attention.png",
-                                   mime="image/png", key="cam_download")
-            else:
-                st.warning(record["cam_error"] or "未生成热图。")
-        with right, st.container(border=True):
-            st.markdown("**03 · 辅助筛查结果**")
-            st.subheader(prediction["predicted_class"])
-            st.write(prediction["predicted_label_cn"])
-            st.metric("最高类别模型分数", f"{prediction['model_score']:.2%}")
-            scores = pd.DataFrame({"类别": CLASS_NAMES,
-                                   "模型分数": [prediction["probabilities"][c] for c in CLASS_NAMES]})
-            st.dataframe(scores, hide_index=True, width="stretch",
-                         column_config={"模型分数": st.column_config.ProgressColumn("模型分数", min_value=0, max_value=1, format="percent")})
-            st.caption(SCORE_NOTE)
-            st.caption(f"检查点 {prediction['checkpoint']['filename']} · 第 {prediction['checkpoint']['epoch']} 轮")
-        st.caption("分类结果需结合完整 OCT 扫描与临床检查复核；热图仅解释本次分类的相对关注区域。")
-        with st.expander("复核备注与报告下载", expanded=True):
-            note = st.text_area("复核备注（写入报告草稿）", value=record["note"], max_chars=1000,
-                                key="note_" + record["case_id"], height=80)
-            record["note"] = note
-            report_downloads(record, "screen")
+        if record and payload is not None and image_sha(payload) != record["source_sha256"]:
+            st.warning("当前显示上一次分析结果。新影像已选好，请点击「开始分析」。")
+        viewer(record, preview)
+    with results:
+        result_panel(record)
 
 
 def records_page():
-    st.caption("会话工作区 / 报告草稿")
-    st.info("仅保存当前浏览器会话最近 5 例，刷新或关闭会话后可能清空。正式病例库与账号权限尚未实现。")
+    banner("检查记录", "回看本次会话影像，整理备注并导出报告")
     records = st.session_state.records
+    st.caption("最近 5 次分析暂存在当前会话；请在关闭页面前导出所需报告。")
     if not records:
-        st.write("暂无分析记录。请先在影像工作台完成一次分析。")
+        st.info("暂无检查记录。请在影像工作台导入影像并完成分析。")
         return
-    rows = [{"检查编号": r["case_id"], "来源": r["source_name"], "时间": r["created_at"],
-             "模型分类": r["prediction"]["predicted_class"], "模型分数": f"{r['prediction']['model_score']:.2%}",
-             "状态": "待专业人员复核"} for r in reversed(records)]
-    st.dataframe(rows, hide_index=True, width="stretch")
-    choice = st.selectbox("选择报告", list(range(len(records))), index=len(records)-1,
-                          format_func=lambda i: records[i]["case_id"], key="report_choice")
-    record = records[choice]
-    a, b = st.columns([1, 1])
-    with a:
-        st.image(record["overlay"] or record["original"], width="stretch")
-    with b:
-        st.markdown(build_report_markdown(record))
-        report_downloads(record, "history")
-    with st.expander("清理本会话"):
-        if st.button("清空分析记录", icon=":material/delete:", key="clear_records"):
+    st.dataframe([{"检查编号":r["case_id"], "影像":r["source_name"],
+                   "分析时间":r["created_at"][:19].replace("T"," "), "分类提示":r["prediction"]["predicted_label_cn"],
+                   "状态":"待复核"} for r in reversed(records)], hide_index=True, width="stretch")
+    index = st.selectbox("选择检查", list(range(len(records))), index=len(records)-1,
+                         format_func=lambda i: records[i]["source_name"]+" · "+records[i]["case_id"], key="report_choice")
+    record = records[index]
+    l, r = st.columns([3, 1.25], gap="large")
+    with l:
+        a,b = st.columns(2)
+        with a:
+            canvas(record["original"], "原始影像")
+        with b:
+            if record["overlay"] is not None:
+                canvas(record["overlay"], "AI 关注区域")
+    with r, st.container(border=True):
+        st.badge("报告草稿 · 未签署", color="orange")
+        st.subheader(record["prediction"]["predicted_label_cn"])
+        st.write(f"模型匹配分数：{record['prediction']['model_score']:.1%}")
+        record["note"] = st.text_area("阅片备注", record["note"], max_chars=1000,
+                                     key="history_note_"+record["case_id"])
+        downloads(record, "history")
+    with st.expander("管理会话记录"):
+        st.caption("清空后无法从本会话恢复，已经下载的报告不受影响。")
+        if st.button("清空本次会话", icon=":material/delete:"):
             st.session_state.records = []
             st.session_state.active_record = None
             st.rerun()
 
 
-def evidence_page():
-    st.caption("实验档案 / 本地训练记录快照")
-    info = training_summary()
-    if not info:
-        st.info("未提供训练摘要，可运行 tools/export_training_summary.py 导出。")
-        return
-    a, b, c, d = st.columns(4)
-    a.metric("已完成训练", f"{info['completed_epoch']} / {info['target_epochs']} 轮")
-    b.metric("最佳验证准确率", f"{info['best_val_acc']:.2%}")
-    c.metric("最佳检查点轮次", str(info["best_epoch"]))
-    d.metric("最后一轮验证准确率", f"{info['final_val_acc']:.2%}")
-    st.caption(f"摘要时间：{info.get('updated_at', '未记录')} · phase={info['phase']}。队友电脑上此页展示随仓库提供的实验快照。")
-    history = pd.DataFrame(info.get("history", []))
-    if not history.empty:
-        st.subheader("训练与验证准确率")
-        chart = history[["epoch", "train_acc", "val_acc"]].rename(columns={"epoch": "轮次", "train_acc": "训练准确率", "val_acc": "验证准确率"})
-        st.line_chart(chart, x="轮次", y=["训练准确率", "验证准确率"], height=300)
-        st.caption("仅绘制留有完成日志的轮次；未记录的早期轮次不补造。纵轴 0–1 表示准确率。")
-    st.info(f"第 {info['augmentation_start_epoch']} 轮起使用轻度增强（{info['augmentation_profile']}）。训练中途改变策略，不能据此宣称它优于无增强基线，需独立对照实验。")
-    with st.expander("最佳检查点验证集混淆矩阵与实验边界", expanded=True):
-        matrix = info.get("best_confusion_matrix")
-        if matrix:
-            st.dataframe(pd.DataFrame(matrix, index=["真实 " + c for c in CLASS_NAMES],
-                                      columns=["预测 " + c for c in CLASS_NAMES]), width="stretch")
-            st.caption("第 18 轮检查点，验证集共 2000 张；行=真实标签，列=模型预测。")
-        st.write("当前验证结果用于模型选择，不等于独立测试集结果。后续应核验患者层面的划分、开展测试集评估，并报告每类召回率、F1、混淆矩阵与错误案例。")
-    test_path = ROOT / "assets" / "test_evaluation.json"
-    if test_path.is_file():
-        evaluation = json.loads(test_path.read_text(encoding="utf-8"))
-        st.subheader("固定检查点 · 本地测试集评估")
-        p, q, r = st.columns(3)
-        p.metric("测试图像", str(evaluation["test_images"]))
-        q.metric("测试准确率", f"{evaluation['accuracy']:.2%}")
-        r.metric("宏平均 F1", f"{evaluation['macro_f1']:.4f}")
-        st.dataframe(pd.DataFrame(evaluation["per_class"]).T.rename(
-            columns={"precision": "精确率", "recall": "召回率", "f1": "F1", "support": "样本数", "predicted_count": "预测数量"}),
-            width="stretch", column_config={c: st.column_config.NumberColumn(c, format="%.3f") for c in ["精确率", "召回率", "F1"]})
-        recall = evaluation["per_class"]["DRUSEN"]["recall"]
-        st.warning(f"DRUSEN 召回率 {recall:.1%}。请结合各类漏检与错误案例判断系统可靠性。患者独立性与图像去重尚未核验，本页不是临床验证。")
-        st.dataframe(pd.DataFrame(evaluation["confusion_matrix_actual_rows_predicted_columns"],
-                                  index=["真实 " + c for c in CLASS_NAMES], columns=["预测 " + c for c in CLASS_NAMES]), width="stretch")
-        st.caption(f"固定 {evaluation['checkpoint']['filename']} 第 {evaluation['checkpoint']['epoch']} 轮；测试期间未训练或调参。")
-    st.download_button("下载实验摘要 JSON", json.dumps(info, ensure_ascii=False, indent=2),
-                       file_name="training_summary.json", mime="application/json")
-
-
-def audit_page():
-    path = ROOT / "assets" / "data_audit_summary.json"
-    if not path.is_file():
-        st.info("尚未生成审计摘要，请运行 python tools/audit_oct.py。")
-        return
-    audit = json.loads(path.read_text(encoding="utf-8"))
-    st.caption(f"完整数据快照 · {audit['generated_at']} · 原始数据和模型只读")
-    pair = audit["pairs"]["train_val"]
-    a, b, c = st.columns(3)
-    a.metric("检查图像", f"{sum(sum(v.values()) for v in audit['counts'].values()):,}")
-    b.metric("验证图与训练完全重复", str(pair['file_sha256']['val_images']))
-    c.metric("相同内容跨标签组数", str(audit['duplicate_groups']['file_sha256']['conflicting_label_groups']))
-    st.warning("当前验证划分存在数据交叉，应先处理重复内容、核验标签，并按患者分组设计新划分，再进行训练对照。")
-    st.subheader("划分交叉证据")
-    st.dataframe([{"数据对": key, "候选编号交集": value['candidate_id']['shared_values'],
-                   "字节完全相同组": value['file_sha256']['shared_values'],
-                   "灰度像素相同组": value['pixel_sha256']['shared_values']}
-                  for key, value in audit['pairs'].items()], hide_index=True, width="stretch")
-    st.caption("候选患者编号取自文件名中间数字，未通过患者映射表核验。没有完全重复不等于排除了近似图或相邻切片。")
-    st.subheader("DRUSEN：全部测试图像的错误去向")
-    st.dataframe([{"预测类别": key, "数量": value['count'],
-                   "模型分数中位数": value['median_model_score'],
-                   "分数≥90%的数量": value['score_at_least_90_percent']}
-                  for key, value in audit['drusen']['score_statistics'].items()], hide_index=True, width="stretch")
-    st.write("完整报告包含原图、预测类别的 Grad-CAM，以及真实标签 DRUSEN 的目标关注图。热图用于提出待复核问题，不能独立证明误判原因。")
-    st.caption(audit['drusen']['selection_rule'])
-    local_report = ROOT / "outputs" / "data_audit" / "report.html"
-    if local_report.is_file():
-        st.download_button("下载完整审计与案例报告", local_report.read_bytes(),
-                           file_name="OCT数据与错误分析.html", mime="text/html", icon=":material/download:")
-    else:
-        st.info("仓库只提供汇总；原图案例报告保存在生成审计的本机。")
-    st.markdown("**建议顺序：** 核验患者标识与冲突标签 → 去重并按患者分组隔离划分 → 在新划分重建基线 → 仅在验证集比较类别加权、解冻层数和增强强度。已经查看的测试案例用于探索分析，最终方案应使用未参与开发的留出数据评估。")
-
-
 def guide_page():
-    st.caption("使用说明 / 研究演示边界")
-    st.markdown("""### 演示流程
-1. 在影像工作台选择示例或上传单张 OCT 切片。
-2. 点击开始分析，查看原图、模型关注区域及四类模型分数。
-3. 填写复核备注，下载 HTML 报告（可用浏览器打印为 PDF）或文字报告。
-4. 在会话报告中回看最近 5 例，在实验档案中核对真实训练指标。
-
-### 模型配置
-默认读取项目下 `models/torch_resume/best.pt`，也可切换到 `latest.pt`。
-权重不上传 GitHub，队友需要从队长处获取可信检查点并放入该目录。
-推理全程在本机 CPU 执行，不访问外部 API，不启动训练。
-
-### 如何理解结果
-CNV：脉络膜新生血管；DME：黄斑水肿；DRUSEN：玻璃膜疣；NORMAL：正常类。
-分数是未经校准的四类 softmax 输出；NORMAL 也不能排除模型类别以外的疾病。
-Grad-CAM 是对所选分类的关注解释，不能用于病灶分割、面积测量或严重程度判定。
-报告是离线模板草稿，须由专业人员复核；不会自动生成治疗建议。
-
-### 接下来值得做的实验
-已完成固定检查点的本地测试集评估，见实验档案。下一步：核验患者划分与重复图像 → 分类错误分析 →
-独立的无增强 / 轻度增强对照 → 校准与低分样本转人工策略。
-不要反复用测试集调参；没有结果时不填写提升幅度。
-""")
+    banner("使用帮助", "了解影像导入、结果解读与报告保存")
+    a, b, c = st.columns(3)
+    for col, heading, content in [
+        (a, "01  导入影像", "在影像工作台上传 JPEG / PNG 格式的 OCT 单张切片，点击开始分析。也可以先体验内置示例。"),
+        (b, "02  对照阅片", "查看原图与 AI 关注图；支持单图与双图切换、放大、显示亮度及关注图强度调整。"),
+        (c, "03  保存报告", "填写阅片备注，导出完整报告。用浏览器打开下载文件，可打印为 PDF。")]:
+        with col, st.container(border=True):
+            st.subheader(heading)
+            st.write(content)
+    with st.expander("如何理解分类与关注图？", expanded=True):
+        st.write("支持脉络膜新生血管（CNV）、黄斑水肿（DME）、玻璃膜疣（DRUSEN）与正常（NORMAL）四类影像提示。")
+        st.write("模型分数表示四类之间的相对匹配程度，未经概率校准，不是患病概率。正常类也不能排除其他疾病。")
+        st.write("热图展示模型关注的位置，不能用来测量病灶范围或判断严重程度。结果需结合完整检查，由专业人员复核。")
+    with st.expander("影像与记录保存在哪里？"):
+        st.write("当前版本在本机处理影像，最近 5 次分析保存在当前浏览器会话中；不是永久病例库。关闭会话前请导出报告。")
+    st.caption("眸析 · 辅助筛查演示系统，未经临床验证。")
 
 
+st.logo(str(ROOT / "assets" / "mouxi-logo.svg"), size="large")
+page = st.navigation({"工作空间":[
+    st.Page(screening, title="影像工作台", icon=":material/view_quilt:", default=True),
+    st.Page(records_page, title="检查记录", icon=":material/folder_open:", url_path="reports")],
+    "支持":[st.Page(guide_page, title="使用帮助", icon=":material/help:", url_path="guide")]})
 with st.sidebar:
-    st.header("眸析 MOUXI", icon=":material/visibility:")
-    st.caption("OCT 视网膜影像辅助筛查")
-
-page = st.navigation({
-    "影像中心": [st.Page(screening, title="影像工作台", icon=":material/monitor:", default=True),
-                 st.Page(records_page, title="会话报告", icon=":material/description:", url_path="reports")],
-    "科研与说明": [st.Page(evidence_page, title="实验档案", icon=":material/analytics:", url_path="experiments"),
-                   st.Page(audit_page, title="数据与误判审查", icon=":material/fact_check:", url_path="audit"),
-                   st.Page(guide_page, title="使用说明", icon=":material/help:", url_path="guide")],
-}, position="sidebar")
-checkpoint_status()
-st.title(page.title, icon=page.icon)
+    st.html('<div class="sidebar-note"><b>让影像更易读</b><p>辅助筛查 · 专业复核</p>'
+            '<small>本机运行 / 演示版本</small></div>')
 page.run()

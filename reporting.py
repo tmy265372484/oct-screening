@@ -132,12 +132,10 @@ table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;padding:8px 1
 <section><h2>四类别模型分数</h2><table><thead><tr><th>类别</th><th>中文名称</th><th>模型分数</th></tr></thead><tbody>{rows}</tbody></table></section>
 {image_section}
 <p class="notice">{escape(CAM_NOTE)}</p>
-<section><h2>检查点与验证记录</h2><div class="meta"><div><b>检查点：</b>{cell('checkpoint_name')}</div><div><b>所用检查点轮次：</b>{cell('checkpoint_epoch')}</div>
-<div><b>该检查点验证准确率：</b>{cell('checkpoint_val_acc')}</div><div><b>历史最佳验证记录：</b>{cell('best_val_acc')}（{cell('best_epoch')}）</div></div>
-<p class="notice">上述验证记录来自检查点元数据，不是该病例的诊断正确率；缺失记录显示“未记录”。</p></section>
+<section><h2>阅读提示</h2><p>请结合完整 OCT 扫描与临床检查，由专业人员复核。正常类提示也不能排除其他疾病。</p></section>
 <section><h2>复核备注</h2><div class="review">{note}</div></section>
 <div class="sign"><span>复核医生：________________</span><span>复核日期：________________</span></div>
-<footer>{escape(REVIEW_NOTE)}</footer>
+<footer>{escape(REVIEW_NOTE)}<br>分析版本：{cell('checkpoint_name')} / {cell('checkpoint_epoch')} · 仅供结果追溯</footer>
 </main></body></html>"""
 
 
@@ -159,12 +157,9 @@ def build_report_markdown(record: dict) -> str:
             "| 类别 | 中文名称 | 模型分数 |", "| --- | --- | --- |"]
     out += [f"| {name} | {label} | {score} |" for name, label, score in data["scores"]]
     out += ["", "## 图像说明", "", "影像与关注叠加图请查看同次导出的 HTML 报告。", CAM_NOTE,
-            "", "## 检查点与验证记录", "",
-            f"- 检查点：{_markdown(data['checkpoint_name'])}",
-            f"- 所用检查点轮次：{data['checkpoint_epoch']}",
-            f"- 该检查点验证准确率：{data['checkpoint_val_acc']}",
-            f"- 历史最佳验证记录：{data['best_val_acc']}（{data['best_epoch']}）", "",
-            "上述验证记录来自检查点元数据，不是该病例的诊断正确率；缺失记录显示“未记录”。",
+            "", "## 阅读提示", "",
+            "请结合完整 OCT 扫描与临床检查，由专业人员复核。正常类提示也不能排除其他疾病。",
+            f"分析版本：{_markdown(data['checkpoint_name'])} / {data['checkpoint_epoch']}（仅供结果追溯）",
             "", "## 复核备注", "", _markdown(data["note"]), "",
             "复核医生：________________　复核日期：________________", "", REVIEW_NOTE, ""]
     return "\n".join(out)

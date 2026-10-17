@@ -79,6 +79,9 @@ class RealModelUIWorkflowTests(unittest.TestCase):
 
         app = AppTest.from_file(str(ROOT / "streamlit_app.py"), default_timeout=60).run()
         self.assertEqual(len(app.exception), 0)
+        self.assertTrue(app.button(key="run_analysis").disabled)
+        app.session_state["source_choice"] = "体验示例"
+        app.run()
         app.button(key="run_analysis").click().run()
         self.assertEqual(len(app.exception), 0)
         self.assertEqual(len(app.error), 0)
@@ -100,6 +103,14 @@ class RealModelUIWorkflowTests(unittest.TestCase):
         self.assertTrue(np.array_equal(np.asarray(report_overlay), np.asarray(record["overlay"])))
         # Ensure the cache is bounded independently of the original upload.
         self.assertLessEqual(max(record["original"].size), 1280)
+        original_before = np.asarray(record["original"]).copy()
+        scores_before = dict(record["prediction"]["probabilities"])
+        app.slider(key="view_zoom").set_value(2.0).run()
+        app.slider(key="view_brightness").set_value(1.5).run()
+        self.assertEqual(len(app.exception), 0)
+        self.assertEqual(app.session_state["active_record"]["case_id"], case_id)
+        self.assertEqual(app.session_state["active_record"]["prediction"]["probabilities"], scores_before)
+        self.assertTrue(np.array_equal(original_before, np.asarray(app.session_state["active_record"]["original"])))
 
         app.selectbox(key="example_class").select("DME").run()
         self.assertEqual(len(app.exception), 0)

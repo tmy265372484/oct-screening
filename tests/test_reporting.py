@@ -47,9 +47,9 @@ class ReportTests(unittest.TestCase):
         sample = record()
         sample["prediction"]["checkpoint"].update(filename="latest.pt", format="resume", epoch=50, val_acc=None)
         text = build_report_markdown(sample)
-        self.assertIn("所用检查点轮次：第 50 轮", text)
-        self.assertIn("该检查点验证准确率：未记录", text)
-        self.assertIn("历史最佳验证记录：75.25%（第 18 轮）", text)
+        self.assertIn("第 50 轮（仅供结果追溯）", text)
+        self.assertNotIn("验证准确率", text)
+        self.assertNotIn("75.25%", text)
         self.assertNotIn("已完成 50", text)
         self.assertNotIn("训练已完成", text)
 
@@ -80,7 +80,7 @@ class ReportTests(unittest.TestCase):
         sample["prediction"]["checkpoint"] = {}
         text = build_report_markdown(sample)
         self.assertIn("该类别模型分数：未记录", text)
-        self.assertIn("所用检查点轮次：未记录", text)
+        self.assertIn("分析版本：未记录 / 未记录", text)
         self.assertNotIn("75.25%", text)
 
 
