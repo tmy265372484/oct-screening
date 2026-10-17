@@ -1,0 +1,176 @@
+{
+  "counts": {
+    "train": {
+      "CNV": 36705,
+      "DME": 10848,
+      "DRUSEN": 8116,
+      "NORMAL": 50640
+    },
+    "val": {
+      "CNV": 500,
+      "DME": 500,
+      "DRUSEN": 500,
+      "NORMAL": 500
+    },
+    "test": {
+      "CNV": 250,
+      "DME": 250,
+      "DRUSEN": 250,
+      "NORMAL": 250
+    }
+  },
+  "unparsed_filenames": {
+    "train": 0,
+    "val": 0,
+    "test": 0
+  },
+  "decode_errors": 0,
+  "candidate_id_counts": {
+    "train": 4778,
+    "val": 1086,
+    "test": 635
+  },
+  "pairs": {
+    "train_val": {
+      "candidate_id": {
+        "shared_values": 1079,
+        "train_images": 55313,
+        "val_images": 1993
+      },
+      "file_sha256": {
+        "shared_values": 303,
+        "train_images": 350,
+        "val_images": 303
+      },
+      "pixel_sha256": {
+        "shared_values": 303,
+        "train_images": 350,
+        "val_images": 303
+      },
+      "same_class_candidate_ids": {
+        "CNV": 238,
+        "DME": 227,
+        "DRUSEN": 238,
+        "NORMAL": 452
+      }
+    },
+    "train_test": {
+      "candidate_id": {
+        "shared_values": 0,
+        "train_images": 0,
+        "test_images": 0
+      },
+      "file_sha256": {
+        "shared_values": 0,
+        "train_images": 0,
+        "test_images": 0
+      },
+      "pixel_sha256": {
+        "shared_values": 0,
+        "train_images": 0,
+        "test_images": 0
+      },
+      "same_class_candidate_ids": {
+        "CNV": 0,
+        "DME": 0,
+        "DRUSEN": 0,
+        "NORMAL": 0
+      }
+    },
+    "val_test": {
+      "candidate_id": {
+        "shared_values": 0,
+        "val_images": 0,
+        "test_images": 0
+      },
+      "file_sha256": {
+        "shared_values": 0,
+        "val_images": 0,
+        "test_images": 0
+      },
+      "pixel_sha256": {
+        "shared_values": 0,
+        "val_images": 0,
+        "test_images": 0
+      },
+      "same_class_candidate_ids": {
+        "CNV": 0,
+        "DME": 0,
+        "DRUSEN": 0,
+        "NORMAL": 0
+      }
+    }
+  },
+  "duplicate_groups": {
+    "file_sha256": {
+      "groups": 7092,
+      "images": 14958,
+      "cross_split_groups": 303,
+      "conflicting_label_groups": 269
+    },
+    "pixel_sha256": {
+      "groups": 7117,
+      "images": 15008,
+      "cross_split_groups": 303,
+      "conflicting_label_groups": 269
+    }
+  },
+  "limitations": [
+    "文件名中间数字仅作为候选患者编号；本地无患者映射表，未核实其官方语义。",
+    "字节SHA256和原尺寸解码灰度像素SHA256检查完全相同内容；未穷举近似图、相邻B-scan或不同压缩/裁剪后的近重复。",
+    "examples来自训练目录的复制，不属于独立评估；本次审计范围为train/val/test。",
+    "未移动、删除、重分数据，未训练；不能据此声称已修复泄漏或获得独立临床性能。"
+  ],
+  "drusen": {
+    "total": 250,
+    "predicted_counts": {
+      "CNV": 80,
+      "DME": 14,
+      "DRUSEN": 105,
+      "NORMAL": 51
+    },
+    "recall": 0.42,
+    "selected_case_ids": [
+      "DR-221",
+      "DR-145",
+      "DR-123",
+      "DR-247",
+      "DR-110",
+      "DR-013",
+      "DR-228",
+      "DR-077"
+    ],
+    "selection_rule": "每个预测类别按模型分数降序，取最高分及中间名次各1例；包含正确对照，不代表错误类型的随机抽样。",
+    "checkpoint_epoch": 18,
+    "limitations": "测试标签作为参考，未由眼科专家重新标注。热图无法证明病灶、标签错误或误判原因；这些案例仅供错误审查，不用于反复调测试集。",
+    "score_statistics": {
+      "CNV": {
+        "count": 80,
+        "median_model_score": 0.7147620916366577,
+        "score_at_least_90_percent": 17
+      },
+      "DME": {
+        "count": 14,
+        "median_model_score": 0.5264360904693604,
+        "score_at_least_90_percent": 0
+      },
+      "DRUSEN": {
+        "count": 105,
+        "median_model_score": 0.744856595993042,
+        "score_at_least_90_percent": 11
+      },
+      "NORMAL": {
+        "count": 51,
+        "median_model_score": 0.627048909664154,
+        "score_at_least_90_percent": 8
+      }
+    }
+  },
+  "generated_at": "2026-10-17T23:24:23+08:00",
+  "model_hashes": {
+    "best.pt": "36712ebe5cd8eb4f4f27dba05bddf18200f7bfd5abe837b78cb337ded0a811da",
+    "latest.pt": "30bd7711c98158009a8bb0795d07148affdae2cd98cb8419228438858a403ffd",
+    "oct_classifier.keras": "cfafad83bcaf98b106b01e3f26fe00655b320758ecc2332563b04b7f6e4e2b1b"
+  },
+  "model_files_unchanged": true
+}

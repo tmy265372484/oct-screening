@@ -261,6 +261,41 @@ def evidence_page():
                        file_name="training_summary.json", mime="application/json")
 
 
+def audit_page():
+    path = ROOT / "assets" / "data_audit_summary.json"
+    if not path.is_file():
+        st.info("尚未生成审计摘要，请运行 python tools/audit_oct.py。")
+        return
+    audit = json.loads(path.read_text(encoding="utf-8"))
+    st.caption(f"完整数据快照 · {audit['generated_at']} · 原始数据和模型只读")
+    pair = audit["pairs"]["train_val"]
+    a, b, c = st.columns(3)
+    a.metric("检查图像", f"{sum(sum(v.values()) for v in audit['counts'].values()):,}")
+    b.metric("验证图与训练完全重复", str(pair['file_sha256']['val_images']))
+    c.metric("相同内容跨标签组数", str(audit['duplicate_groups']['file_sha256']['conflicting_label_groups']))
+    st.warning("当前验证划分存在数据交叉，应先处理重复内容、核验标签，并按患者分组设计新划分，再进行训练对照。")
+    st.subheader("划分交叉证据")
+    st.dataframe([{"数据对": key, "候选编号交集": value['candidate_id']['shared_values'],
+                   "字节完全相同组": value['file_sha256']['shared_values'],
+                   "灰度像素相同组": value['pixel_sha256']['shared_values']}
+                  for key, value in audit['pairs'].items()], hide_index=True, width="stretch")
+    st.caption("候选患者编号取自文件名中间数字，未通过患者映射表核验。没有完全重复不等于排除了近似图或相邻切片。")
+    st.subheader("DRUSEN：全部测试图像的错误去向")
+    st.dataframe([{"预测类别": key, "数量": value['count'],
+                   "模型分数中位数": value['median_model_score'],
+                   "分数≥90%的数量": value['score_at_least_90_percent']}
+                  for key, value in audit['drusen']['score_statistics'].items()], hide_index=True, width="stretch")
+    st.write("完整报告包含原图、预测类别的 Grad-CAM，以及真实标签 DRUSEN 的目标关注图。热图用于提出待复核问题，不能独立证明误判原因。")
+    st.caption(audit['drusen']['selection_rule'])
+    local_report = ROOT / "outputs" / "data_audit" / "report.html"
+    if local_report.is_file():
+        st.download_button("下载完整审计与案例报告", local_report.read_bytes(),
+                           file_name="OCT数据与错误分析.html", mime="text/html", icon=":material/download:")
+    else:
+        st.info("仓库只提供汇总；原图案例报告保存在生成审计的本机。")
+    st.markdown("**建议顺序：** 核验患者标识与冲突标签 → 去重并按患者分组隔离划分 → 在新划分重建基线 → 仅在验证集比较类别加权、解冻层数和增强强度。已经查看的测试案例用于探索分析，最终方案应使用未参与开发的留出数据评估。")
+
+
 def guide_page():
     st.caption("使用说明 / 研究演示边界")
     st.markdown("""### 演示流程
@@ -295,6 +330,7 @@ page = st.navigation({
     "影像中心": [st.Page(screening, title="影像工作台", icon=":material/monitor:", default=True),
                  st.Page(records_page, title="会话报告", icon=":material/description:", url_path="reports")],
     "科研与说明": [st.Page(evidence_page, title="实验档案", icon=":material/analytics:", url_path="experiments"),
+                   st.Page(audit_page, title="数据与误判审查", icon=":material/fact_check:", url_path="audit"),
                    st.Page(guide_page, title="使用说明", icon=":material/help:", url_path="guide")],
 }, position="sidebar")
 checkpoint_status()
