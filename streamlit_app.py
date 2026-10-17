@@ -15,6 +15,9 @@ from config import CLASS_CN, CLASS_NAMES
 from grad_cam_torch import GradCAMError, colorize_heatmap, generate_gradcam
 from predict_torch import OCTPredictor
 from reporting import build_report_html, build_report_markdown
+from case_library import save_case
+from library_ui import library_page
+from health_guide import consultation_page
 
 st.set_page_config(page_title="眸析 · OCT 影像工作站", page_icon=":material/visibility:",
                    layout="wide", initial_sidebar_state="expanded")
@@ -79,6 +82,11 @@ def analyze(payload, source_name, source):
                   cam_error=cam_error, note="", input_kind=source)
     st.session_state.records = (st.session_state.records + [record])[-5:]
     st.session_state.active_record = record
+    try:
+        save_case(record)
+        st.session_state["archive_error"] = None
+    except Exception:
+        st.session_state["archive_error"] = "分析已完成，但本地案例保存失败。请先导出报告，并检查磁盘空间或文件权限。"
     # Viewing parameters are per analysis; they never affect inference.
     for key in ("cam_alpha", "view_mode", "view_zoom", "view_brightness"):
         st.session_state.pop(key, None)
@@ -167,6 +175,12 @@ def result_panel(record):
             st.caption("请结合完整 OCT 扫描与临床检查复核，单张影像分类不等于确诊。")
         record["note"] = st.text_area("阅片备注", value=record["note"], height=90, max_chars=1000,
                                      placeholder="记录需要进一步复核的影像表现…", key="note_"+record["case_id"])
+        if st.button("保存备注与当前关注图", icon=":material/save:", width="stretch"):
+            try:
+                save_case(record)
+                st.success("已更新到案例库")
+            except Exception:
+                st.error("保存失败，请检查本地磁盘或权限。仍可导出报告。")
         downloads(record, "screen")
 
 
@@ -176,13 +190,28 @@ def screening():
     payload, preview, source_name = None, None, ""
     with controls, st.container(border=True, key="import"):
         st.markdown("#### 检查影像")
-        source = st.segmented_control("影像来源", ["上传影像", "体验示例"], default="上传影像",
+        source = st.segmented_control("影像来源", ["上传影像", "example 图库", "体验示例"], default="上传影像",
                                       key="source_choice", label_visibility="collapsed") or "上传影像"
         if source == "上传影像":
             upload = st.file_uploader("选择 OCT 影像", type=["jpg", "jpeg", "png"],
                                       max_upload_size=10, key="oct_upload")
             if upload:
                 payload, source_name = upload.getvalue(), Path(upload.name).name
+            st.caption("可从电脑的 example 文件夹选择图片上传，或切换到 example 图库直接选图。")
+        elif source == "example 图库":
+            folder = ROOT / "example"
+            candidates = sorted(p for p in folder.rglob("*") if p.is_file()
+                                and p.suffix.lower() in {".png", ".jpg", ".jpeg"}
+                                and p.resolve().is_relative_to(folder.resolve())) if folder.is_dir() else []
+            if candidates:
+                selected = st.selectbox("选择本地图片", candidates,
+                                        format_func=lambda p: str(p.relative_to(folder)),key="folder_image")
+                if selected.stat().st_size <= 10*1024*1024:
+                    payload, source_name = selected.read_bytes(), selected.name
+                else:
+                    st.error("这张图片超过 10 MB，请选择其他图片。")
+            else:
+                st.info("example 文件夹暂无 JPEG / PNG 图片。将图片放入后刷新，或使用上传入口。")
         else:
             category = st.selectbox("示例影像", CLASS_NAMES, format_func=lambda c: CLASS_CN[c], key="example_class")
             sample = ROOT / "assets" / "demo" / f"{category}.png"
@@ -210,50 +239,16 @@ def screening():
         st.divider()
         st.markdown("**当前工作区**")
         st.caption(f"本次会话已分析 {len(st.session_state.records)} 张")
-        st.caption("影像在本机处理，不发送第三方。最近 5 次结果暂存于本会话，请及时导出报告。")
+        st.caption("分析结果自动保存到本机案例库，可跨会话回看。图片不发送第三方。")
     record = st.session_state.active_record
     with images:
+        if st.session_state.get("archive_error"):
+            st.warning(st.session_state["archive_error"])
         if record and payload is not None and image_sha(payload) != record["source_sha256"]:
             st.warning("当前显示上一次分析结果。新影像已选好，请点击「开始分析」。")
         viewer(record, preview)
     with results:
         result_panel(record)
-
-
-def records_page():
-    banner("检查记录", "回看本次会话影像，整理备注并导出报告")
-    records = st.session_state.records
-    st.caption("最近 5 次分析暂存在当前会话；请在关闭页面前导出所需报告。")
-    if not records:
-        st.info("暂无检查记录。请在影像工作台导入影像并完成分析。")
-        return
-    st.dataframe([{"检查编号":r["case_id"], "影像":r["source_name"],
-                   "分析时间":r["created_at"][:19].replace("T"," "), "分类提示":r["prediction"]["predicted_label_cn"],
-                   "状态":"待复核"} for r in reversed(records)], hide_index=True, width="stretch")
-    index = st.selectbox("选择检查", list(range(len(records))), index=len(records)-1,
-                         format_func=lambda i: records[i]["source_name"]+" · "+records[i]["case_id"], key="report_choice")
-    record = records[index]
-    l, r = st.columns([3, 1.25], gap="large")
-    with l:
-        a,b = st.columns(2)
-        with a:
-            canvas(record["original"], "原始影像")
-        with b:
-            if record["overlay"] is not None:
-                canvas(record["overlay"], "AI 关注区域")
-    with r, st.container(border=True):
-        st.badge("报告草稿 · 未签署", color="orange")
-        st.subheader(record["prediction"]["predicted_label_cn"])
-        st.write(f"模型匹配分数：{record['prediction']['model_score']:.1%}")
-        record["note"] = st.text_area("阅片备注", record["note"], max_chars=1000,
-                                     key="history_note_"+record["case_id"])
-        downloads(record, "history")
-    with st.expander("管理会话记录"):
-        st.caption("清空后无法从本会话恢复，已经下载的报告不受影响。")
-        if st.button("清空本次会话", icon=":material/delete:"):
-            st.session_state.records = []
-            st.session_state.active_record = None
-            st.rerun()
 
 
 def guide_page():
@@ -271,14 +266,21 @@ def guide_page():
         st.write("模型分数表示四类之间的相对匹配程度，未经概率校准，不是患病概率。正常类也不能排除其他疾病。")
         st.write("热图展示模型关注的位置，不能用来测量病灶范围或判断严重程度。结果需结合完整检查，由专业人员复核。")
     with st.expander("影像与记录保存在哪里？"):
-        st.write("当前版本在本机处理影像，最近 5 次分析保存在当前浏览器会话中；不是永久病例库。关闭会话前请导出报告。")
+        st.write("分析后自动保存到本机案例库，包含预览影像、关注叠加图与结果。可在案例详情保存备注、导出报告或删除记录。当前无账号隔离，仅供本机使用。咨询记录只保留在当前会话。")
     st.caption("眸析 · 辅助筛查演示系统，未经临床验证。")
 
 
 st.logo(str(ROOT / "assets" / "mouxi-logo.svg"), size="large")
+def archive_page():
+    library_page(banner,canvas,downloads,image_uri)
+
+def health_page():
+    consultation_page(banner)
+
 page = st.navigation({"工作空间":[
     st.Page(screening, title="影像工作台", icon=":material/view_quilt:", default=True),
-    st.Page(records_page, title="检查记录", icon=":material/folder_open:", url_path="reports")],
+    st.Page(archive_page, title="案例库", icon=":material/folder_open:", url_path="cases"),
+    st.Page(health_page, title="健康咨询", icon=":material/forum:", url_path="consultation")],
     "支持":[st.Page(guide_page, title="使用帮助", icon=":material/help:", url_path="guide")]})
 with st.sidebar:
     st.html('<div class="sidebar-note"><b>让影像更易读</b><p>辅助筛查 · 专业复核</p>'

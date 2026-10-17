@@ -33,7 +33,8 @@ try{
  await page.getByText('双图对照',{exact:true}).click();
  await page.waitForFunction(()=>document.querySelectorAll('.image-viewport').length===2);
  await page.setViewportSize({width:1440,height:1100});await shot('19_用户端1440宽屏.png');
- await page.getByRole('link',{name:/检查记录/}).click();
+ await page.getByRole('link',{name:/案例库/}).click();
+ await page.getByRole('button',{name:/查看案例详情/}).first().click();
  await page.getByRole('button',{name:/导出完整报告/}).waitFor();await shot('20_用户端检查记录.png');
  const rp=await browser.newPage({viewport:{width:1440,height:1200}});
  await rp.goto(require('url').pathToFileURL(report).href);await rp.evaluate(()=>document.fonts.ready);

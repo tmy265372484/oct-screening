@@ -10,6 +10,8 @@ from io import BytesIO
 from pathlib import Path
 import re
 import unittest
+import tempfile
+import os
 from unittest.mock import patch
 
 import numpy as np
@@ -74,6 +76,13 @@ class UploadBoundaryTests(unittest.TestCase):
     "需要本地可信 best.pt 与内置示例；不在测试中下载或训练",
 )
 class RealModelUIWorkflowTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        environment = patch.dict(os.environ, {"OCT_CASE_DB": str(Path(temporary.name)/"cases.sqlite3")})
+        environment.start()
+        self.addCleanup(environment.stop)
+
     def test_predict_explain_export_and_stale_result_warning(self):
         from streamlit.testing.v1 import AppTest
 

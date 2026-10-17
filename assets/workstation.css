@@ -47,3 +47,7 @@
 .pending-result p{font-size:13px;line-height:1.9;color:#8a9aaa}
 @media(max-width:1500px){.image-scroll{height:390px}.viewport-label{padding:0 10px;font-size:10px}.viewport-label span+span{display:none}.viewer-legend{flex-wrap:wrap}.viewer-legend>span:last-child{margin-left:0}.finding h2{font-size:20px}}
 </style>
+<style>
+.case-thumb{height:180px;background:#08121e;border-radius:7px;overflow:hidden;margin-bottom:8px}
+.case-thumb img{width:100%;height:100%;object-fit:contain}
+</style>
