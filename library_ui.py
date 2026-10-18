@@ -1,8 +1,9 @@
 """Persistent archive with searchable gallery, real images and case details."""
 from html import escape
 import streamlit as st
-from case_library import list_cases, load_case, update_note, delete_case
+from case_library import list_cases, load_case, save_case, update_note, delete_case
 from config import CLASS_CN
+from viewer_features import annotation_editor, annotated_image, validate_annotations
 
 def library_page(banner,canvas,downloads,image_uri):
     banner("案例库", "每一次分析都有记录 · 影像、结果与备注完整回看")
@@ -22,12 +23,33 @@ def library_page(banner,canvas,downloads,image_uri):
         st.caption(record["case_id"]+" · "+record["created_at"])
         images,details=st.columns([3,1.35],gap="large")
         with images:
-            a,b=st.columns(2)
-            with a: canvas(record["original"],"原始影像")
-            with b:
-                if record["overlay"] is not None: canvas(record["overlay"],"已保存的关注区域")
-                else: st.info("本次分析没有可用关注图。")
-            st.caption("展示保存时的影像与关注叠加图，不会重新运行模型。")
+            if record.get("annotations"):
+                a,b,c=st.columns(3)
+                with a: canvas(record["original"],"原始影像")
+                with b: canvas(annotated_image(record["original"],record["annotations"],record.get("source_size")),"用户标注")
+                with c:
+                    if record["overlay"] is not None: canvas(record["overlay"],"AI 关注区域")
+                    else: st.info("本次分析没有可用关注图。")
+            else:
+                a,b=st.columns(2)
+                with a: canvas(record["original"],"原始影像")
+                with b:
+                    if record["overlay"] is not None: canvas(record["overlay"],"已保存的关注区域")
+                    else: st.info("本次分析没有可用关注图。")
+            if record.get("slice_total",1)>1:
+                st.caption(f"序列 {record.get('series_id','未记录')} · 第 {record.get('slice_index','?')} / {record.get('slice_total')} 张")
+            st.caption("展示保存时的影像、用户标注与关注叠加图，不会重新运行模型。")
+            with st.expander("影像标注与测量", expanded=bool(record.get("annotations"))):
+                st.caption("标注用于阅片记录，距离以输入影像像素 px 计；没有设备像素间距时不换算为 μm。")
+                changed=annotation_editor(record,key="library_marks_"+selected)
+                if changed is not None:
+                    record["annotations"]=validate_annotations(changed,record["original"].size)
+                    try:
+                        save_case(record)
+                        st.success("标注已保存在本机案例库。")
+                        st.rerun()
+                    except Exception:
+                        st.error("标注暂未保存，请检查本机磁盘空间或权限。")
         with details,st.container(border=True):
             st.badge("待专业人员复核",color="orange")
             st.subheader(record["prediction"]["predicted_label_cn"])

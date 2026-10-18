@@ -60,11 +60,28 @@ def _details(record: dict) -> dict:
     filename = checkpoint.get("filename")
     if not filename and checkpoint.get("path"):
         filename = str(checkpoint["path"]).replace("\\", "/").rsplit("/", 1)[-1]
+    source_size = record.get("source_size")
+    if (not isinstance(source_size, (list, tuple)) or len(source_size) != 2
+            or any(not isinstance(x, int) or isinstance(x, bool) or x <= 0 for x in source_size)):
+        source_size = None
+    slice_total = record.get("slice_total", 1)
+    slice_index = record.get("slice_index", 1)
+    series_id = record.get("series_id")
+    slice_label = (f"第 {slice_index} / {slice_total} 张"
+                   if isinstance(slice_total, int) and slice_total > 1
+                   and isinstance(slice_index, int) and 1 <= slice_index <= slice_total
+                   else "单张影像")
+    annotations = record.get("annotations")
+    annotation_count = len(annotations) if isinstance(annotations, list) else 0
     return {
         "case_id": _text(record.get("case_id")),
         "created_at": _text(record.get("created_at")),
         "source_name": _text(record.get("source_name")),
         "source_sha256": _text(record.get("source_sha256")),
+        "series_id": _text(series_id, "未关联序列"),
+        "slice_label": slice_label,
+        "source_size": (f"{source_size[0]} × {source_size[1]} px" if source_size else "未记录"),
+        "annotation_count": str(annotation_count),
         "note": _text(record.get("note"), "尚未填写；等待专业人员复核。"),
         "class_name": name,
         "class_label": label,
@@ -102,7 +119,8 @@ def build_report_html(record: dict) -> str:
         for name, label, score in data["scores"]
     )
     figures = []
-    for key, caption in (("original", "输入影像"), ("overlay", "Grad-CAM 模型关注叠加图")):
+    for key, caption in (("original", "输入影像"), ("annotated", "用户标注后的原始影像"),
+                         ("overlay", "Grad-CAM 模型关注叠加图")):
         if record.get(key) is not None:
             figures.append(f'<figure><img alt="{caption}" src="{_png_data(record[key])}"><figcaption>{caption}</figcaption></figure>')
     image_section = '<section><h2>影像与模型关注图</h2><div class="images">' + "".join(figures) + "</div></section>" if figures else ""
@@ -126,6 +144,8 @@ table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;padding:8px 1
 </style></head><body><main>
 <header><h1>OCT 智能辅助筛查报告</h1><span class="draft">医生复核草稿 · 未签署</span></header>
 <div class="meta"><div><b>病例编号：</b>{cell('case_id')}</div><div><b>生成时间：</b>{cell('created_at')}</div>
+<div><b>序列编号：</b>{cell('series_id')}</div><div><b>序列位置：</b>{cell('slice_label')}</div>
+<div><b>输入图像尺寸：</b>{cell('source_size')}</div><div><b>用户标注数：</b>{cell('annotation_count')}</div>
 <div class="wide"><b>来源文件：</b>{cell('source_name')}</div><div class="wide"><b>图像 SHA-256：</b>{cell('source_sha256')}</div></div>
 <section class="result"><h2>模型分类提示</h2><strong>{cell('class_name')} · {cell('class_label')}</strong><div>该类别模型分数：{cell('model_score')}</div></section>
 <p class="notice">{escape(SCORE_NOTE)}</p>
@@ -152,6 +172,10 @@ def build_report_markdown(record: dict) -> str:
     out = ["# OCT 智能辅助筛查报告", "", "**医生复核草稿 · 未签署**", ""]
     for title, key in (("病例编号", "case_id"), ("生成时间", "created_at"), ("来源文件", "source_name"), ("图像 SHA-256", "source_sha256")):
         out.append(f"- {title}：{_markdown(data[key])}")
+    out += [f"- 序列编号：{_markdown(data['series_id'])}",
+            f"- 序列位置：{_markdown(data['slice_label'])}",
+            f"- 输入图像尺寸：{_markdown(data['source_size'])}",
+            f"- 用户标注数：{data['annotation_count']}"]
     out += ["", "## 模型分类提示", "", f"{_markdown(data['class_name'])} · {_markdown(data['class_label'])}",
             f"该类别模型分数：{data['model_score']}", "", SCORE_NOTE, "", "## 四类别模型分数", "",
             "| 类别 | 中文名称 | 模型分数 |", "| --- | --- | --- |"]
