@@ -23,7 +23,7 @@ guard.stop
 .env
 .env.*
 !.env.example
-.streamlit/secrets.toml
+!.streamlit/secrets.toml
 
 # 数据图片（数据集原图不入库；README 需要的示例图以后单独用 ! 放行）
 *.jpg
