@@ -6,3 +6,4 @@ numpy>=1.26,<3
 pillow>=10,<13
 pandas>=2.2,<4
 matplotlib>=3.9,<4
+requests>=2.31,<3

@@ -1,4 +1,7 @@
 """Health guidance: rule-based safety checks with an optional DeepSeek LLM fallback."""
+import os
+from html import escape
+
 import requests
 
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
@@ -8,13 +11,20 @@ EMERGENCY_WORDS = ("突然", "骤降", "看不见", "黑幕", "幕布", "闪光"
                    "剧烈眼痛", "外伤", "化学", "飞蚊", "失明", "暴盲", "遮住")
 
 SYSTEM_PROMPT = (
-    "你是「眸析」OCT 视网膜影像筛查工作台的健康咨询助手。"
-    "职责：用通俗中文解释眼科/眼底影像相关概念、解释筛查结果含义、整理就诊问题、介绍一般就诊准备与治疗方向。"
-    "必须遵守：1) 只做科普与教育引导，绝不提供个体化诊断、治疗方案、药物名称/剂量或处方；"
-    "2) 不解读具体医学影像、不声称能诊断疾病；"
-    "3) 遇到突然视力下降、幕布样/黑幕遮挡、新发闪光、飞蚊突然增多、剧烈眼痛、眼外伤等急症表现，一律建议尽快前往眼科急诊并停止进一步推测；"
-    "4) 不引导用户自行购药、停药或改变现有治疗；5) 回答简洁分点、避免恐吓性语言。"
-    "若用户询问与眼科无关的问题，简要回应后引导回眼科健康话题。"
+    "你叫眸析，是OCT工作站里的眼健康科普助手。你不是医生，也不要假装是真人；但说话要有真实聊天的节奏，"
+    "自然、耐心、有分寸，不像在生成报告或念客服话术。"
+    "先接住用户刚刚说的重点，再直接回答。句子长短自然，能两句说清就别拉长；通常控制在一小段。"
+    "不要每轮都问候、复述问题、总结或加‘希望能帮到你’；不要说‘作为AI/大模型’，也少用‘值得注意的是’、"
+    "‘建议您’、‘请知悉’这类模板开头。不要为了显得亲切硬加共情。"
+    "不必每次都追问；只有确实需要补充信息时，才用日常说法问一个问题。除非用户要求，不要强行列清单。"
+    "语气示例（只学表达方式，不要照抄）：用户问‘复诊要准备什么？’时，可以说‘把之前的OCT报告和现在用的眼药水带上就行。"
+    "最近视力或不适有变化的话，简单记下来，医生问起时会更好描述。’用户问‘这个分数很高，是不是确诊了？’时，可以说‘还不能这么理解。"
+    "这个分数是模型对某个类别的匹配程度，不是患病概率；结果要结合完整检查由眼科医生判断。’"
+    "你可以解释一般眼科概念、筛查报告术语、就诊准备和常见治疗方向；不能诊断个人、开药、给剂量或制定治疗方案。"
+    "你看不到用户的OCT图像或本地病例，不要声称已经查看影像或确认病灶；只有当这会影响回答时，才自然说明这一点。"
+    "不要建议用户自行购药、停药或改变治疗。若用户描述突然视力下降、幕布样遮挡、新发闪光、飞蚊突然明显增多、"
+    "剧烈眼痛或眼外伤，直接、平静地建议尽快前往眼科急诊，不要再作推测。"
+    "若问题与眼科无关，简短回应后自然引回眼健康话题。"
 )
 
 
@@ -22,44 +32,59 @@ def is_emergency(text):
     return any(w in text for w in EMERGENCY_WORDS)
 
 
-def ask_deepseek(api_key, messages, timeout=40):
+def ask_deepseek(api_key, messages, timeout=25):
     response = requests.post(
         DEEPSEEK_API_URL,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json={"model": DEEPSEEK_MODEL, "messages": messages, "temperature": 0.4, "max_tokens": 1000},
+        json={"model": DEEPSEEK_MODEL, "messages": messages, "temperature": 0.55, "max_tokens": 450},
         timeout=timeout,
     )
     response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"].strip()
+    answer = response.json()["choices"][0]["message"]["content"].strip()
+    if not answer:
+        raise ValueError("The model returned an empty answer")
+    return answer
+
+
+def get_api_key(st):
+    """Read the server-side DeepSeek key without exposing it to the browser."""
+    key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if key:
+        return key
+    try:
+        return st.secrets.get("DEEPSEEK_API_KEY", "").strip()
+    except Exception:
+        return ""
 
 
 TOPICS = {
-"CNV": "脉络膜新生血管指异常新生血管。确诊后，眼科医生常会评估是否适合抗 VEGF 等治疗，并安排影像随访。是否需要治疗及具体方案取决于病因、视力和完整检查，不能由本系统决定。",
-"DME": "糖尿病相关黄斑水肿需要眼科检查，并结合血糖、血压等全身情况管理。医生可能评估抗 VEGF、其他眼内治疗或特定情况下的激光治疗。不能只凭模型标签确定方案。",
-"DRUSEN": "玻璃膜疣是眼底的一类沉积表现，是否需要随访或其他干预取决于黄斑状态与疾病分期。并不是出现玻璃膜疣就需要注射或服用补充剂，需由眼科医生评估。",
-"NORMAL": "正常类别表示这张切片更接近模型的正常样本，不能排除其他眼病。如果仍有视物模糊、变形或不适，应进行完整眼科检查。"
+"CNV": "脉络膜新生血管是眼底异常长出的新生血管。医生会结合 OCT、视力和其他检查，判断是否需要抗 VEGF 等治疗并安排复查；单靠模型分类不能决定方案。",
+"DME": "糖尿病黄斑水肿需要结合眼底检查和血糖等情况一起评估。有些人会考虑抗 VEGF 等治疗，也有人先处理全身因素，具体要由医生看完整检查后决定。",
+"DRUSEN": "玻璃膜疣是黄斑区域常见的一种沉积表现，是否需要处理要看数量、位置和视网膜情况。发现玻璃膜疣不等于一定要打针或吃补充剂，按医生安排复查就好。",
+"NORMAL": "模型把这张切片分到‘正常’类，只表示它更像正常样本，不能排除其他眼病。如果你仍有视物模糊、变形或不舒服，还是需要做完整检查。"
 }
 
 
 def reply(text, history=(), category=None):
     # Never infer absence of red flags from keywords or a NORMAL image.
     if is_emergency(text):
-        return ("你提到了可能需要及时处理的症状。若正在出现突然视力下降、幕布样遮挡、新发闪光或飞蚊明显增多，或剧烈眼痛、眼外伤，请尽快前往眼科急诊，不要等待在线判断。"
-                "\n\n这是关键词触发的提醒，不是确诊；如果是在描述既往或否认这些症状，可以说明发生时间和目前情况。")
+        return ("如果这是现在正在发生的突然视力下降、黑影像幕布挡住视野，或剧烈眼痛，建议马上去眼科急诊，别等线上回复。"
+                "如果是以前发生的症状，告诉我现在还在不在就好。")
     if any(w in text for w in ("治疗", "药", "注射", "手术", "方案")):
         detail = TOPICS.get(category, "眼病的处理取决于病因和完整检查。有些情况需要观察随访，有些需要药物、激光或手术评估。")
-        return detail+"\n\n以上是一般治疗方向，不是个人处方。请勿自行使用眼药、激素或停用原有治疗。你可以记录起病时间、单眼/双眼、既往病史与目前用药，带上原始检查就诊。"
+        return detail+"\n\n具体怎么治还得看完整检查，先别自行改药。你是想了解报告里的哪一类情况？"
     names = {"CNV": ("CNV", "新生血管"), "DME": ("DME", "水肿"), "DRUSEN": ("DRUSEN", "玻璃膜疣"), "NORMAL": ("NORMAL", "正常")}
     for key, terms in names.items():
         if any(w.lower() in text.lower() for w in terms):
             return TOPICS[key]
     if any(w in text for w in ("报告", "结果", "热图", "分数")):
-        return (TOPICS.get(category, "请先在左侧选择已保存的案例，我可以展示该分类的一般解释。")
-                +"\n\n分数不是患病概率，关注图不是病灶边界。本地问答不重新读取或诊断影像。")
+        detail = TOPICS.get(category)
+        if detail:
+            return detail+"分数是模型的类别匹配程度，不是患病概率；关注图也不等于病灶边界。"
+        return "你把报告里的分类名称或分数发我，我可以帮你解释。分数不是患病概率，关注图也不等于病灶边界。"
     if any(w in text for w in ("就诊", "准备", "检查准备", "复诊")):
-        return "建议准备：症状开始时间和变化、单眼或双眼、既往眼病/糖尿病等病史、正在使用的药物，以及原始 OCT 和既往检查。复诊时间应遵循接诊医生安排；新发或明显加重的症状需要及时就诊。"
-    return ("为了帮助你整理就诊信息，请描述：①主要不适是什么；②什么时候开始、是否加重；③单眼还是双眼；④是否伴眼痛、闪光、黑影或视力突然下降。"
-            "\n\n当前是本地规则问答，不能像医生一样全面理解自由描述或判断疾病。你也可以问「解释报告」「治疗方向有哪些」「就诊需要准备什么」。")
+        return "把之前的 OCT 报告和现在用的眼药水带上就行。最近视力或不适有变化的话，简单记下来，医生问起时会更好描述。"
+    return "嗯，先从最困扰你的地方说起就好。什么时候开始的？是单眼还是双眼？我可以帮你把就诊时要说的重点理一理。"
 
 
 def generate_answer(text, history, category, api_key):
@@ -67,71 +92,91 @@ def generate_answer(text, history, category, api_key):
     if is_emergency(text):
         return reply(text, history, category)
     if api_key:
-        sys_prompt = SYSTEM_PROMPT
-        if category:
-            sys_prompt += f"\n当前用户关联的影像分类为 {category}（{TOPICS.get(category, '')}）。可结合该类别的通用知识回答，但不要据此判断该用户患病。"
         try:
-            return ask_deepseek(api_key, [{"role": "system", "content": sys_prompt}] + history + [{"role": "user", "content": text}])
+            recent_history = [
+                {"role": item["role"], "content": str(item["content"])[:2000]}
+                for item in history[-8:]
+                if item.get("role") in ("user", "assistant") and item.get("content")
+            ]
+            # Keep local case labels and OCT images out of third-party model requests.
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + recent_history
+            messages.append({"role": "user", "content": text[:1000]})
+            return ask_deepseek(api_key, messages)
         except Exception:
-            return reply(text, history, category) + "\n\n（AI 服务暂时不可用，已切换为本地规则回答。）"
+            return reply(text, history, category) + "\n\n我这会儿没连上在线答疑，先给你个简短参考。"
     return reply(text, history, category)
 
 
 def consultation_page(banner):
     import streamlit as st
     from case_library import list_cases
+    api_key = get_api_key(st)
     banner("健康咨询", "理解筛查提示 · 整理症状 · 准备就诊")
-    left, right = st.columns([1, 2.5], gap="large")
+    left, right = st.columns([0.95, 2.5], gap="large")
     with left, st.container(border=True):
-        st.markdown("### 眸析健康助手")
-        st.badge("AI 健康助手", color="blue")
-        st.caption("AI 辅助 · 仅供参考。提供一般知识与就诊引导，不开具个体治疗方案。")
+        st.markdown("### 眸析咨询")
+        st.caption("眼科科普 · 报告理解 · 就诊准备")
+        st.badge("在线答疑" if api_key else "本地知识", color="green" if api_key else "gray")
         rows = list_cases()
         lookup = {r["id"]: r for r in rows}
         chosen = st.selectbox("关联案例（可选）", ["不关联"]+list(lookup),
                               format_func=lambda x: x if x == "不关联" else lookup[x]["source"]+" · "+lookup[x]["category"],
                               key="consult_case")
         category = lookup[chosen]["category"] if chosen in lookup else None
-        st.caption("关联仅用于解释分类，不会将模型分类当作确诊。")
-        st.warning("突然视力下降、幕布样遮挡或剧烈眼痛，请及时前往眼科急诊。")
+        st.caption("关联案例仅在本机用于提示；在线问答不会发送病例分类或影像。")
+        st.warning("突然视力下降、黑影遮挡或剧烈眼痛，请尽快就医。")
+        if api_key:
+            st.caption("在线答疑会把聊天文字发送给 DeepSeek；请勿填写姓名、电话等身份信息。")
+        else:
+            st.caption("尚未配置在线服务，当前使用本地知识提示。")
         st.markdown("[眼健康知识 · 美国国家眼科研究所](https://www.nei.nih.gov/learn-about-eye-health)")
-    try:
-        api_key = st.secrets.get("DEEPSEEK_API_KEY", "").strip()
-    except Exception:
-        api_key = ""
     key = "health_messages_"+chosen
     st.session_state.setdefault(key, [])
     with right:
-        if api_key:
-            st.info("你好，我可以帮你解释筛查提示和整理就诊问题，回答由 AI 生成、仅供参考。请不要填写姓名、电话或身份证号。")
-        else:
-            st.info("你好，我可以帮你解释筛查提示和整理就诊问题。当前未配置 AI 接口，使用本地规则回答。请不要填写姓名、电话或身份证号。")
-        with st.container(horizontal=True):
-            for i, label in enumerate(["解释报告", "治疗方向有哪些", "就诊需要准备什么"]):
-                if st.button(label, key="topic_"+str(i)):
-                    st.session_state[key].extend([{"role": "user", "content": label}, {"role": "assistant", "content": reply(label, category=category)}])
         messages = st.session_state[key]
         # Bounded session-only conversation, never written to case database.
         st.session_state[key] = messages[-40:]
-        with st.container(height=280, border=True):
-            for message in st.session_state[key]:
-                with st.chat_message(message["role"]):
-                    st.write(message["content"])
-            # 最后一条是用户提问且尚未回答：在对话流内显示"正在思考"并生成回答
+        with st.container(height=350, border=True, key="consult-conversation"):
+            if not st.session_state[key]:
+                greeting = "你好，我在。想先看看筛查报告里的分类，还是聊聊最近的眼部不适？"
+                st.markdown(_chat_bubble("assistant", greeting), unsafe_allow_html=True)
+            else:
+                for message in st.session_state[key]:
+                    st.markdown(_chat_bubble(message["role"], message["content"]), unsafe_allow_html=True)
+            # 最后一条是用户提问且尚未回答：生成并显示自然的简短回复
             if st.session_state[key] and st.session_state[key][-1]["role"] == "user":
                 last_text = st.session_state[key][-1]["content"]
-                with st.chat_message("assistant"):
-                    with st.spinner("正在思考，请稍等…"):
-                        answer = generate_answer(last_text, st.session_state[key][:-1], category, api_key)
+                with st.spinner("稍等，我整理一下…"):
+                    answer = generate_answer(last_text, st.session_state[key][:-1], category, api_key)
                 st.session_state[key].append({"role": "assistant", "content": answer})
                 st.rerun()
-        prompt = st.chat_input("描述症状或询问报告含义…", max_chars=1000)
+        with st.container(horizontal=True):
+            topics = ["报告里的分类是什么意思？", "这个分数代表什么？", "复诊前要准备什么？"]
+            for i, label in enumerate(topics):
+                if st.button(label, key="consult_topic_"+str(i)):
+                    st.session_state[key].append({"role": "user", "content": label})
+                    st.rerun()
+        prompt = st.chat_input("发条消息…", max_chars=1000)
         if prompt:
             st.session_state[key].append({"role": "user", "content": prompt})
             st.rerun()
         with st.container(horizontal=True):
-            st.download_button("导出咨询记录", "\n\n".join(m["role"]+"： "+m["content"] for m in st.session_state[key]),
+            role_names = {"user": "我", "assistant": "眸析"}
+            transcript = "\n\n".join(role_names.get(m["role"], "对话")+"： "+m["content"] for m in st.session_state[key])
+            st.download_button("导出对话", transcript,
                                file_name="健康咨询记录.txt", mime="text/plain")
-            if st.button("清空本段咨询"):
+            if st.button("清空对话"):
                 st.session_state[key] = []
                 st.rerun()
+
+
+def _chat_bubble(role, content):
+    """Render escaped plain text in compact, directional chat bubbles."""
+    role = "assistant" if role == "assistant" else "user"
+    label, avatar = ("眸析", "眸") if role == "assistant" else ("我", "我")
+    safe_content = escape(str(content)).replace("\n", "<br>")
+    return (
+        f'<div class="chat-row chat-row--{role}" role="group" aria-label="{label}的消息">'
+        f'<span class="chat-avatar" aria-hidden="true">{avatar}</span>'
+        f'<div class="chat-bubble">{safe_content}</div></div>'
+    )
