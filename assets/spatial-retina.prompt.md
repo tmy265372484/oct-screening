@@ -1,0 +1,10 @@
+# 眼科辅助决策系统背景
+
+生成方式：内置 image_gen，generate 模式。概念性视网膜分层视觉，不是真实 OCT 检查影像。所有页面通过 spatial_ui.py 共用此背景，玻璃样式与动效不变。原城市背景保留作为历史设计版本。
+
+## Final prompt
+
+Use case: stylized-concept. Create a sophisticated cinematic 16:9 landscape background image for a professional ophthalmology OCT clinical decision support desktop application, ideally 1920x1080 or larger. This is ONLY a background asset, not a UI screenshot.
+Art direction: quiet, exceptionally premium medical imaging visualization, architectural photography meets scientific glass sculpture. A dark charcoal and muted blue-green diagnostic reading space, subtle smoked glass and brushed metal, atmospheric depth. Along the lower third and right perimeter, a beautifully sculpted translucent retinal cross-section: fine flowing stratified layers inspired by OCT retinal imaging, with gentle curved contours and a subtle foveal depression, delicate ivory and desaturated teal edge illumination. A restrained optical scanning beam grazes the layers, suggesting precise observation and assisted clinical reasoning. The layers should read as elegant scientific material, not ocean waves. Some subtle warm champagne rim lighting balances cool slate tones. Restrained, believable physically based 3D rendering, soft volumetric light, exquisite glass microtexture, very high craft.
+Composition is crucial: broad dark calm negative space on the left for white headline; central and upper-right areas are subdued and low contrast to sit behind five real frosted-glass UI cards. The clinical visual motif is readable at the bottom and right margins even with cards overlaid. Full-bleed spacious desktop wallpaper, no heavy vignette, no bright white zones. Beautiful, calm and human-centered, credible rather than sci-fi.
+No text, no letters, no numerals, no logos, no charts, no UI cards, no framed screens, no dashboards, no brain, no DNA helix, no giant eyeball, no faces, no patients, no doctors, no hospital beds, no red crosses, no neon cyberpunk, no busy circuitry. Conceptual visual only, not an actual diagnostic scan.

@@ -9,6 +9,7 @@ import uuid
 import numpy as np
 from PIL import Image, ImageEnhance
 import streamlit as st
+import spatial_ui
 
 import matplotlib
 matplotlib.use("Agg")
@@ -29,10 +30,11 @@ plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 
 st.set_page_config(page_title="眸析 · OCT 影像工作站", page_icon=":material/visibility:",
-                   layout="wide", initial_sidebar_state="expanded")
+                   layout="wide", initial_sidebar_state="collapsed")
 st.session_state.setdefault("records", [])
 st.session_state.setdefault("active_record", None)
 st.html((ROOT / "assets" / "workstation.css").read_text(encoding="utf-8"))
+spatial_ui.install_style()
 
 
 @st.cache_resource(max_entries=2, show_spinner=False)
@@ -197,12 +199,16 @@ CLASS_CHART_COLORS = {
 
 def _style_neumorphic_chart(ax, fig):
     """Keep plots legible while matching the workstation's soft neutral surfaces."""
-    fig.patch.set_facecolor(NEO_CHART_BG)
-    ax.set_facecolor(NEO_CHART_BG)
+    fig.patch.set_alpha(0)
+    ax.patch.set_alpha(0)
     ax.set_axisbelow(True)
     ax.grid(axis="y", color=NEO_CHART_GRID, linewidth=0.7, zorder=0)
-    ax.tick_params(axis="x", labelsize=9, colors="#4b5c70")
-    ax.tick_params(axis="y", labelsize=8, colors="#718095")
+    ax.tick_params(axis="x", labelsize=9, colors="#d5e0e4")
+    ax.tick_params(axis="y", labelsize=8, colors="#c3d1d8")
+    ax.xaxis.label.set_color("#d5e0e4")
+    ax.yaxis.label.set_color("#d5e0e4")
+    for text in ax.texts:
+        text.set_color("#e0eaed")
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     ax.spines["left"].set_color("#d2dae4")
@@ -453,7 +459,7 @@ def guide_page():
     st.caption("眸析 · 辅助筛查演示系统，未经临床验证。")
 
 
-st.logo(str(ROOT / "assets" / "mouxi-logo.svg"), size="large")
+
 def archive_page():
     library_page(banner,canvas,downloads,image_uri)
 
@@ -621,14 +627,24 @@ def statistics_page():
             st.caption("每条代表一张影像，四色柱子为该影像四个类别的相对概率。分数未经概率校准。")
     st.caption("分数为四类之间的相对匹配程度，未经概率校准，不是患病概率。")
 
-page = st.navigation({"工作空间":[
-    st.Page(screening, title="影像工作台", icon=":material/view_quilt:", default=True),
-    st.Page(archive_page, title="案例库", icon=":material/folder_open:", url_path="cases"),
-    st.Page(image_comparison_page, title="影像对比", icon=":material/compare:", url_path="compare"),
-    st.Page(statistics_page, title="统计分析", icon=":material/bar_chart:", url_path="statistics"),
-    st.Page(health_page, title="健康咨询", icon=":material/forum:", url_path="consultation")],
-    "支持":[st.Page(guide_page, title="使用帮助", icon=":material/help:", url_path="guide")]})
-with st.sidebar:
-    st.html('<div class="sidebar-note"><b>让影像更易读</b><p>辅助筛查 · 专业复核</p>'
-            '<small>本机运行 / 演示版本</small></div>')
-page.run()
+
+def spatial_home():
+    spatial_ui.home(feature_pages)
+
+
+home_page = st.Page(spatial_home, title="首页", icon=":material/home:", default=True)
+feature_pages = {
+    "workspace": st.Page(screening, title="影像工作台", icon=":material/view_quilt:", url_path="workspace"),
+    "cases": st.Page(archive_page, title="案例库", icon=":material/folder_open:", url_path="cases"),
+    "compare": st.Page(image_comparison_page, title="影像对比", icon=":material/compare:", url_path="compare"),
+    "statistics": st.Page(statistics_page, title="统计分析", icon=":material/bar_chart:", url_path="statistics"),
+    "consultation": st.Page(health_page, title="健康问诊", icon=":material/forum:", url_path="consultation"),
+}
+help_page = st.Page(guide_page, title="使用帮助", icon=":material/help:", url_path="guide")
+page = st.navigation([home_page, *feature_pages.values(), help_page], position="hidden")
+spatial_ui.topbar(feature_pages, home_page, help_page, page)
+if page.url_path:
+    with st.container(key="feature_surface"):
+        page.run()
+else:
+    page.run()

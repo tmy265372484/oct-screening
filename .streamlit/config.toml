@@ -7,12 +7,12 @@ headless = true
 gatherUsageStats = false
 
 [theme]
-base = "light"
-primaryColor = "#218b91"
-backgroundColor = "#e9edf3"
-secondaryBackgroundColor = "#e9edf3"
-textColor = "#263548"
-borderColor = "#d5dbe4"
+base = "dark"
+primaryColor = "#add5ce"
+backgroundColor = "#17232b"
+secondaryBackgroundColor = "#17232b"
+textColor = "#eef3f5"
+borderColor = "#52616a"
 showWidgetBorder = true
 showSidebarBorder = false
 baseRadius = "16px"
@@ -21,12 +21,12 @@ font = "sans-serif"
 baseFontSize = 14
 headingFontSizes = ["28px", "24px", "20px", "16px", "14px", "12px"]
 headingFontWeights = [600, 600, 600, 600, 600, 600]
-chartCategoricalColors = ["#218b91", "#e39a55", "#8b78c9", "#5f987e"]
-dataframeHeaderBackgroundColor = "#e4e9f0"
+chartCategoricalColors = ["#add5ce", "#e39a55", "#8b78c9", "#5f987e"]
+dataframeHeaderBackgroundColor = "#22343f"
 
 [theme.sidebar]
-backgroundColor = "#e9edf3"
-secondaryBackgroundColor = "#e4e9f0"
-textColor = "#34465a"
-primaryColor = "#218b91"
-borderColor = "#d5dbe4"
+backgroundColor = "#17232b"
+secondaryBackgroundColor = "#22343f"
+textColor = "#eef3f5"
+primaryColor = "#add5ce"
+borderColor = "#52616a"

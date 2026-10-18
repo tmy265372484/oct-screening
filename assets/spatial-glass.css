@@ -1,0 +1,89 @@
+<style>
+:root{--glass-ink:#f3f4f4;--glass-muted:#c3cbcf;--glass-stroke:rgba(255,255,255,.23);--glass-surface:rgba(50,57,61,.46)}
+html,body,[data-testid="stApp"],[data-testid="stMain"],[data-testid="stMainBlockContainer"]{background:transparent!important;color:var(--glass-ink)}
+[data-testid="stMainBlockContainer"]{max-width:2000px;padding:1.2rem 3.5rem 2.4rem}
+[data-testid="stHeader"]{display:none!important}
+[data-testid="stToolbar"]{display:none}
+[data-testid="stSidebar"],[data-testid="stSidebarCollapsedControl"]{display:none!important}
+.st-key-spatial_topbar{padding:8px 0 22px;border-bottom:1px solid rgba(255,255,255,.19);margin-bottom:20px}
+.spatial-brand{display:flex;align-items:center;gap:12px;color:#f4f5f5}
+.brand-orbit{font-size:38px;font-weight:200;line-height:1}
+.spatial-brand b{font-size:22px;font-weight:500;letter-spacing:3px}
+.spatial-brand>span:not(.brand-orbit){font-size:11px;letter-spacing:3px;color:#d1d7d9}
+.spatial-brand small{font-size:9px;letter-spacing:2px;color:#acb6bc;border-left:1px solid #6d777d;padding-left:15px;margin-left:8px}
+.st-key-spatial_topbar [data-testid="stPageLink"] a{border:1px solid transparent;border-radius:99px;padding:9px 13px;color:#d7dee1;text-decoration:none;transition:background .2s,border .2s}
+.st-key-spatial_topbar [data-testid="stPageLink"] a:hover,.st-key-spatial_topbar [data-testid="stPageLink"] a[aria-current="page"]{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22)}
+.st-key-spatial_home{padding-top:clamp(32px,7vh,105px)}
+.spatial-hero{padding:0 25px 50px 5px}
+.hero-kicker{font-size:11px;letter-spacing:3px;color:#cad1d4;margin-bottom:40px}
+.spatial-hero h1{font-weight:300;font-size:clamp(42px,4vw,76px);letter-spacing:3px;line-height:1.35;margin:0;color:#f3f5f5}
+.spatial-hero h1 span{color:#c0c9ce}
+.hero-en{font-size:18px;letter-spacing:5px;color:#d8e0e1;line-height:1.6;margin-top:28px;font-weight:300}
+.spatial-hero p{font-size:14px;line-height:2;color:#c7cfd3;margin:32px 0}
+.hero-details{display:flex;gap:14px;align-items:center;color:#d0d9dc;font-size:11px;letter-spacing:1px}
+.hero-details i{width:3px;height:3px;background:#bbc7cd;border-radius:50%}
+div[class*="st-key-glass_card_"]{position:relative;overflow:hidden;padding:27px 28px 17px;border:1px solid rgba(255,255,255,.33);border-radius:27px;background:linear-gradient(125deg,rgba(221,218,207,.18),rgba(130,147,157,.08) 45%,rgba(225,230,231,.19));box-shadow:inset 1px 1px 0 rgba(255,255,255,.22),inset -1px -1px 0 rgba(255,255,255,.06),0 20px 55px rgba(0,0,0,.18);backdrop-filter:blur(24px) saturate(115%);-webkit-backdrop-filter:blur(24px) saturate(115%);transition:transform .24s,background .24s,border-color .24s;margin-bottom:16px}
+div[class*="st-key-glass_card_"]:hover{transform:translateY(-5px);border-color:rgba(255,255,255,.65);background:linear-gradient(125deg,rgba(236,228,213,.27),rgba(151,169,181,.17) 45%,rgba(225,230,231,.28))}
+div[class*="st-key-glass_card_"]:focus-within{outline:3px solid #d1eceb;outline-offset:3px}
+.card-overline{display:flex;justify-content:space-between;align-items:center;color:#dae0e2;font-size:12px;letter-spacing:2px;margin-bottom:27px}
+.card-overline .material-symbols-rounded{font-size:25px}
+.card-eyebrow{font-size:9px;letter-spacing:2px;color:#c8d0d3;margin-bottom:13px}
+.glass-card-content h2{font-size:25px;font-weight:400;letter-spacing:1px;color:#fff;margin:0 0 12px}
+.glass-card-content p{font-size:12px;line-height:1.9;color:#d7dee0;margin:0;min-height:45px}
+.card-large .card-overline{margin-bottom:50px}.card-large h2{font-size:38px}.card-large p{font-size:14px;max-width:260px;min-height:58px}
+div[class*="st-key-glass_card_"] [data-testid="stPageLink"] a{font-size:12px;color:#f1f5f5;padding:12px 0 2px;text-decoration:none}
+div[class*="st-key-glass_card_"] [data-testid="stPageLink"] a:after{content:"";position:absolute;inset:0;z-index:2;border-radius:27px}
+.spatial-footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:#bbc6cb;font-size:10px;letter-spacing:2px;padding:40px 0 5px}
+.spatial-section-label{font-size:10px;letter-spacing:3px;color:#aab7c0;margin:3px 0 22px}
+.st-key-feature_surface{padding:28px;border:1px solid rgba(255,255,255,.24);border-radius:25px;background:rgba(20,31,38,.48);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:inset 1px 1px 0 rgba(255,255,255,.1),0 20px 55px rgba(0,0,0,.2)}
+.st-key-import,.st-key-result,.st-key-consult-conversation{background:rgba(154,180,190,.08)!important;backdrop-filter:blur(16px);border-color:rgba(255,255,255,.25)!important}
+.st-key-feature_surface [data-testid="stImage"]{border-radius:12px;overflow:hidden}
+.workspace-heading{background:transparent;box-shadow:none;border:0;padding:0 0 20px;margin-bottom:20px;border-radius:0;border-bottom:1px solid rgba(255,255,255,.17)}
+.workspace-heading h1{color:#f5f7f7;font-weight:450}.workspace-heading p,.eyebrow{color:#c4cdd2}
+.local-badge{background:rgba(122,158,151,.15);border-color:rgba(160,201,187,.28);color:#d1e4df;box-shadow:none}
+.local-badge i{background:#a2d5c4}
+[data-testid="stVerticalBlockBorderWrapper"],[data-testid="stVerticalBlock"][data-border="true"]{border:1px solid var(--glass-stroke)!important;border-radius:20px!important;background:var(--glass-surface)!important;backdrop-filter:blur(22px);box-shadow:inset 1px 1px 0 rgba(255,255,255,.08),0 14px 32px rgba(0,0,0,.12)!important}
+[data-testid="stMarkdownContainer"] h1,[data-testid="stMarkdownContainer"] h2,[data-testid="stMarkdownContainer"] h3,[data-testid="stMarkdownContainer"] h4{color:#f1f5f6}
+[data-testid="stCaptionContainer"]{color:#c2cbd0!important}
+.stButton>button,[data-testid="stDownloadButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stPopover"] button{border:1px solid rgba(255,255,255,.25)!important;border-radius:11px!important;background:rgba(193,209,214,.09)!important;box-shadow:none!important;color:#edf3f5!important;transition:background .2s}
+.stButton>button:hover,[data-testid="stDownloadButton"] button:hover{background:rgba(210,226,228,.18)!important}
+[data-testid="stBaseButton-primary"],[data-testid="stDownloadButton"] [data-testid="stBaseButton-primary"]{background:#c7dedb!important;color:#183c3f!important;border-color:#d9ece9!important}
+button:disabled{opacity:.45}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #c7e6e3!important;outline-offset:3px}
+[data-testid="stTextInput"] input,[data-testid="stTextArea"] textarea,[data-testid="stNumberInput"] input,[data-testid="stDateInput"] input,[data-testid="stSelectbox"] [data-baseweb="select"]>div,[data-testid="stMultiSelect"] [data-baseweb="select"]>div{background:rgba(10,22,29,.5)!important;color:#f2f5f6!important;border:1px solid rgba(255,255,255,.19)!important;box-shadow:none!important;border-radius:10px!important}
+[data-testid="stFileUploaderDropzone"]{background:rgba(12,26,34,.36)!important;border:1px dashed #82969f!important;box-shadow:none!important}
+[data-testid="stSegmentedControl"]{background:rgba(11,22,29,.4)!important;box-shadow:none!important;border-radius:11px}
+[data-testid="stSegmentedControl"] button{color:#d4e0e4!important}
+[data-testid="stSegmentedControl"] button[aria-pressed="true"],[data-testid="stSegmentedControl"] button[aria-checked="true"]{background:rgba(188,219,217,.23)!important;color:#fff!important;box-shadow:none!important}
+[data-testid="stMetric"]{background:rgba(185,204,211,.09);box-shadow:none;border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:15px}
+[data-testid="stAlert"]{box-shadow:none!important;border-radius:12px}
+[data-testid="stExpander"]{background:rgba(17,29,37,.32);border-radius:12px}
+.image-viewport{border-color:#61717d;border-radius:15px;box-shadow:0 15px 35px rgba(0,0,0,.23)}
+.image-scroll{background:#050b13}.viewport-label{background:#14212c;color:#dce5eb}
+.empty-view{background:rgba(12,26,36,.5);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.16);box-shadow:none}
+.empty-view h2{color:#e4edef}.empty-view p,.empty-flow{color:#b4c6cf}
+.scan-glyph{background:rgba(181,213,217,.1);color:#c2dfdf;box-shadow:none;border:1px solid #5a747e}
+.finding h2,.pending-result h3{color:#f1f5f6}.finding-code strong{color:#c1e6df}
+.finding>span,.finding-code,.score-label,.finding p,.pending-result p,.viewer-legend{color:#c5d3d9}
+.score-track{background:rgba(11,25,34,.46);box-shadow:none}.score-track i{background:#a4ccc8}
+.pending-result span{color:#d4e2e7;background:rgba(195,217,222,.13);box-shadow:none}
+.chat-bubble{background:rgba(39,57,67,.85);color:#e6eef2;border-color:#657984;box-shadow:none}
+.chat-row--user .chat-bubble{background:#c2dcd7;color:#173b3d;box-shadow:none}
+.chat-avatar{background:rgba(178,212,215,.18);color:#d7eeeb;box-shadow:none}
+@media(min-width:1700px){.st-key-spatial_home{padding-top:10vh}.card-large .card-overline{margin-bottom:62px}.glass-card-content p{min-height:55px}.card-large p{min-height:78px}div[class*="st-key-glass_card_"]{padding:32px 34px 20px}.spatial-footer{padding-top:65px}}
+@media(max-width:1250px){[data-testid="stMainBlockContainer"]{padding:1.2rem 1.6rem}.spatial-hero{padding-right:5px}.spatial-hero h1{font-size:42px}.card-large h2{font-size:29px}.glass-card-content h2{font-size:22px}div[class*="st-key-glass_card_"]{padding:20px 18px 12px}.spatial-brand small{display:none}.st-key-spatial_topbar [data-testid="stPageLink"] a{padding:7px}}
+@media(max-width:800px){.spatial-hero{padding-bottom:22px}.hero-kicker{margin-bottom:18px}.hero-en{display:none}.st-key-spatial_home{padding-top:16px}.spatial-hero h1{font-size:38px}.spatial-brand>span:not(.brand-orbit){display:none}}
+/* One shared spring interaction for all five entry cards. Layout stays fixed. */
+div[class*="st-key-glass_card_"]{transform:scale(1);transform-origin:center;transition:transform .5s cubic-bezier(.22,1.4,.36,1),background .25s,border-color .25s,box-shadow .25s}
+@keyframes glass-jelly{
+  0%{transform:scale(1)}
+  32%{transform:scale(1.055,.985)}
+  56%{transform:scale(1.015,1.055)}
+  78%{transform:scale(1.04,1.025)}
+  100%{transform:scale(1.035)}
+}
+@media(hover:hover) and (pointer:fine){
+  div[class*="st-key-glass_card_"]:hover{z-index:3;transform:scale(1.035);animation:glass-jelly .64s ease-out;box-shadow:inset 1px 1px 0 rgba(255,255,255,.3),0 24px 60px rgba(0,0,0,.28)}
+}
+@media(prefers-reduced-motion:reduce){div[class*="st-key-glass_card_"]{transition:none!important;animation:none!important}div[class*="st-key-glass_card_"]:hover{transform:none!important}}
+</style>

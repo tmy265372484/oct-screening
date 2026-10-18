@@ -30,6 +30,8 @@ guard.stop
 *.jpeg
 *.png
 !assets/demo/*.png
+!assets/spatial-city.png
+!assets/spatial-retina.png
 !screenshots/*.png
 
 # ===== Python =====
