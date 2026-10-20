@@ -3,6 +3,7 @@ import base64
 from pathlib import Path
 from html import escape
 import streamlit as st
+from access_control import render_logout
 
 ROOT = Path(__file__).resolve().parent
 FEATURES = [
@@ -10,7 +11,7 @@ FEATURES = [
     ("cases", "案例库", "CASE LIBRARY", "让每一次分析，都有迹可循。", "folder_open"),
     ("compare", "影像对比", "IMAGE COMPARISON", "并排阅片，细察影像差异。", "compare"),
     ("statistics", "统计分析", "ANALYTICS", "从影像结果中，看见全局。", "bar_chart"),
-    ("consultation", "健康问诊", "HEALTH CONSULTATION", "理解报告，让问题得到回应。", "forum"),
+    ("consultation", "辅助诊断", "DIAGNOSTIC SUPPORT", "理解报告，让问题得到回应。", "forum"),
 ]
 
 @st.cache_data(show_spinner=False)
@@ -45,10 +46,10 @@ def home(pages):
         title,cards=st.columns([1,1.9],gap="large",vertical_alignment="center")
         with title:
             st.html('<div class="spatial-hero"><div class="hero-kicker">MOUXI · OCT INTELLIGENCE</div>'
-                    '<h1>清晰洞察<br><span>自在眼前。</span></h1>'
+                    '<h1>清晰洞察<br><span>自在眼前</span></h1>'
                     '<div class="hero-en">SEE BEYOND.<br>LOOK CLOSER.</div>'
                     '<p>在影像之间，看见更多。<br>你的视网膜影像辅助工作空间。</p>'
-                    '<div class="hero-details"><span>影像分析</span><i></i><span>案例管理</span><i></i><span>健康咨询</span></div>'
+                    '<div class="hero-details"><span>影像分析</span><i></i><span>案例管理</span><i></i><span>辅助诊断</span></div>'
                     '</div>')
         with cards:
             a,b=st.columns([1.25,1],gap="medium")
@@ -74,5 +75,6 @@ def topbar(pages, home_page, guide_page, current):
                         st.page_link(pages[route],label=title)
                 else:
                     st.page_link(guide_page,label="使用帮助",icon=":material/help:")
+                render_logout()
     if current.url_path:
         st.html('<div class="spatial-section-label">MOUXI / '+escape(current.title)+'</div>')

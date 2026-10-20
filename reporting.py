@@ -125,6 +125,13 @@ def build_report_html(record: dict) -> str:
             figures.append(f'<figure><img alt="{caption}" src="{_png_data(record[key])}"><figcaption>{caption}</figcaption></figure>')
     image_section = '<section><h2>影像与模型关注图</h2><div class="images">' + "".join(figures) + "</div></section>" if figures else ""
     note = cell("note").replace("\n", "<br>")
+    review_section = '<section><h2>人工复核记录（与模型提示分别保存）</h2>'
+    for review in record.get('reviews', []):
+        fields = [f"第 {review['revision']} 次复核", review['reviewed_at'], review['reviewer'],
+                  review['decision'], review.get('category') or '未定', review['rationale']]
+        review_section += '<p>' + '<br>'.join(escape(str(x)) for x in fields) + '</p>'
+    review_section += '<p>本机填写记录，未经身份认证，不构成电子签名；不替代正式临床诊断。</p></section>'
+    status = '已记录人工复核 · 未电子签署' if record.get('reviews') else '医生复核草稿 · 未签署'
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -142,7 +149,7 @@ table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;padding:8px 1
 .sign{{display:flex;justify-content:space-between;border-top:1px solid #d9e3eb;margin-top:28px;padding-top:16px}}footer{{margin-top:20px;color:#63768b;font-size:12px}}
 @media print{{body{{background:white}}main{{margin:0;padding:12mm;max-width:none}}section,figure,.result{{break-inside:avoid}}@page{{size:A4;margin:8mm}}}}
 </style></head><body><main>
-<header><h1>OCT 智能辅助筛查报告</h1><span class="draft">医生复核草稿 · 未签署</span></header>
+<header><h1>OCT 智能辅助筛查报告</h1><span class="draft">{status}</span></header>
 <div class="meta"><div><b>病例编号：</b>{cell('case_id')}</div><div><b>生成时间：</b>{cell('created_at')}</div>
 <div><b>序列编号：</b>{cell('series_id')}</div><div><b>序列位置：</b>{cell('slice_label')}</div>
 <div><b>输入图像尺寸：</b>{cell('source_size')}</div><div><b>用户标注数：</b>{cell('annotation_count')}</div>
@@ -154,8 +161,9 @@ table{{width:100%;border-collapse:collapse}}th,td{{text-align:left;padding:8px 1
 <p class="notice">{escape(CAM_NOTE)}</p>
 <section><h2>阅读提示</h2><p>请结合完整 OCT 扫描与临床检查，由专业人员复核。正常类提示也不能排除其他疾病。</p></section>
 <section><h2>复核备注</h2><div class="review">{note}</div></section>
+{review_section}
 <div class="sign"><span>复核医生：________________</span><span>复核日期：________________</span></div>
-<footer>{escape(REVIEW_NOTE)}<br>分析版本：{cell('checkpoint_name')} / {cell('checkpoint_epoch')} · 仅供结果追溯</footer>
+<footer>{escape(REVIEW_NOTE if not record.get('reviews') else '本报告含本机人工复核记录，不作为独立诊断或治疗依据。')}<br>分析版本：{cell('checkpoint_name')} / {cell('checkpoint_epoch')} · 仅供结果追溯</footer>
 </main></body></html>"""
 
 
@@ -186,4 +194,9 @@ def build_report_markdown(record: dict) -> str:
             f"分析版本：{_markdown(data['checkpoint_name'])} / {data['checkpoint_epoch']}（仅供结果追溯）",
             "", "## 复核备注", "", _markdown(data["note"]), "",
             "复核医生：________________　复核日期：________________", "", REVIEW_NOTE, ""]
+    if record.get('reviews'):
+        out = [line.replace('医生复核草稿 · 未签署', '已记录人工复核 · 未电子签署').replace(REVIEW_NOTE, '本报告含本机人工复核记录，不作为独立诊断或治疗依据。') for line in out]
+        out += ['## 人工复核记录', '', '本机填写记录，未经身份认证，不构成电子签名。']
+        for r in record['reviews']:
+            out += ['', _markdown(f"#{r['revision']} · {r['reviewed_at']} · {r['reviewer']} · {r['decision']} · {r.get('category') or '未定'}"), _markdown(r['rationale'])]
     return "\n".join(out)

@@ -5,11 +5,13 @@ from datetime import datetime, date
 from html import escape
 from pathlib import Path
 import uuid
+import os
 
 import numpy as np
 from PIL import Image, ImageEnhance
 import streamlit as st
 import spatial_ui
+from access_control import require_access
 
 import matplotlib
 matplotlib.use("Agg")
@@ -20,21 +22,23 @@ from config import CLASS_CN, CLASS_NAMES
 from grad_cam_torch import GradCAMError, colorize_heatmap, generate_gradcam
 from predict_torch import OCTPredictor
 from reporting import build_report_html, build_report_markdown
-from case_library import save_case, list_cases, load_case
+from case_library import save_case, list_cases, load_case, review_history
 from library_ui import library_page
+from clinical_review import review_panel
 from health_guide import TOPICS, consultation_page
 from viewer_features import (annotation_editor, annotated_image, comparison_canvas,
                              natural_sort_key, sequence_id, validate_annotations)
 
-plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "Noto Sans CJK SC", "SimHei", "DejaVu Sans"]
 plt.rcParams["axes.unicode_minus"] = False
 
 st.set_page_config(page_title="眸析 · OCT 影像工作站", page_icon=":material/visibility:",
                    layout="wide", initial_sidebar_state="collapsed")
-st.session_state.setdefault("records", [])
-st.session_state.setdefault("active_record", None)
 st.html((ROOT / "assets" / "workstation.css").read_text(encoding="utf-8"))
 spatial_ui.install_style()
+require_access()
+st.session_state.setdefault("records", [])
+st.session_state.setdefault("active_record", None)
 
 
 @st.cache_resource(max_entries=2, show_spinner=False)
@@ -43,7 +47,7 @@ def get_predictor(path: str, modified_ns: int) -> OCTPredictor:
 
 
 def model_path() -> Path:
-    return ROOT / "models" / "torch_resume" / "best.pt"
+    return Path(os.getenv("OCT_MODEL_PATH", str(ROOT / "models" / "torch_resume" / "best.pt")))
 
 
 def image_uri(image):
@@ -58,6 +62,7 @@ def banner(title, subtitle):
 
 def downloads(record, prefix):
     export_record = dict(record)
+    export_record["reviews"] = review_history(record["case_id"])
     if record.get("annotations"):
         export_record["annotated"] = annotated_image(
             record["original"], record["annotations"], record.get("source_size")
@@ -216,7 +221,7 @@ def _style_neumorphic_chart(ax, fig):
 
 
 def probability_bar_chart(probs, predicted_class):
-    """绘制四分类概率柱状图，预测类别高亮。"""
+    """绘制四分类分数柱状图，预测类别高亮。"""
     fig, ax = plt.subplots(figsize=(4.8, 3.0), dpi=110)
     labels = [CLASS_CN[n] for n in CLASS_NAMES]
     values = [float(probs.get(n, 0.0)) for n in CLASS_NAMES]
@@ -225,7 +230,7 @@ def probability_bar_chart(probs, predicted_class):
     for i, v in enumerate(values):
         ax.text(i, v + 0.02, f"{v:.0%}", ha="center", fontsize=8, color="#374151")
     ax.set_ylim(0, 1.08)
-    ax.set_ylabel("概率", fontsize=9, color="#53657a")
+    ax.set_ylabel("模型分数", fontsize=9, color="#53657a")
     _style_neumorphic_chart(ax, fig)
     ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
     fig.tight_layout()
@@ -258,7 +263,7 @@ def _short_name(name, limit=12):
 
 
 def multi_image_probability_chart(records):
-    """多张影像的四分类概率对比分组柱状图（X 轴为影像，四组柱子为类别）。"""
+    """多张影像的四分类分数对比分组柱状图（X 轴为影像，四组柱子为类别）。"""
     palette = CLASS_CHART_COLORS
     n = len(records)
     names = [_short_name(r.get("source_name") or r.get("case_id", "")) for r in records]
@@ -271,7 +276,7 @@ def multi_image_probability_chart(records):
         ax.bar(x + offset, values, width, label=CLASS_CN[cls], color=palette[cls], zorder=3)
     ax.set_xticks(x)
     ax.set_xticklabels(names, fontsize=8, color="#4b5c70", rotation=0 if n <= 4 else 20)
-    ax.set_ylabel("概率", fontsize=9, color="#53657a")
+    ax.set_ylabel("模型分数", fontsize=9, color="#53657a")
     ax.set_ylim(0, 1.08)
     ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
     _style_neumorphic_chart(ax, fig)
@@ -288,12 +293,12 @@ def result_panel(record):
                     '<p>完成分析后，可查看分类分数、填写备注并导出影像报告。</p></div>')
             return
         pred = record["prediction"]
-        st.badge("待专业人员复核", color="orange", icon=":material/pending:")
+        review_panel(record, "workspace")
         st.html(f'<div class="finding"><span>影像分类提示</span><h2>{escape(pred["predicted_label_cn"])}</h2>'
                 f'<div class="finding-code">{escape(pred["predicted_class"])}'
                 f'<strong>{pred["model_score"]:.2%}</strong></div><p>模型匹配分数 · 不代表患病概率</p></div>')
         st.pyplot(probability_bar_chart(pred["probabilities"], pred["predicted_class"]))
-        st.markdown("#### 治疗方向（一般性科普）")
+        st.markdown("#### 临床复核参考")
         st.info(TOPICS.get(pred["predicted_class"], "请结合完整检查由医生判断。")
                 + "\n\n以上为一般性科普，不是个体治疗方案；具体请由眼科医生结合完整检查制定。")
         with st.expander("查看精确分数", expanded=False):
@@ -467,7 +472,7 @@ def health_page():
     consultation_page(banner)
 
 def _comparison_records(limit=8):
-    """优先使用本会话已分析记录，不足以案例库最近记录补充，用于多影像概率对比。"""
+    """优先使用本会话已分析记录，不足以案例库最近记录补充，用于多影像分数对比。"""
     out, seen = [], set()
     for r in st.session_state.get("records", []):
         out.append(r)
@@ -574,15 +579,15 @@ def image_comparison_page():
 
 
 def statistics_page():
-    banner("统计分析", "分类概率分布 · 多影像对比 · 案例库概况")
+    banner("统计分析", "分类分数分布 · 多影像对比 · 案例库概况")
     active = st.session_state.get("active_record")
     rows = list_cases()
     if active is None and not rows:
-        st.info("暂无统计数据。完成一次影像分析后，这里会展示分类概率分布、多影像对比与案例库统计。")
+        st.info("暂无统计数据。完成一次影像分析后，这里会展示分类分数分布、多影像对比与案例库统计。")
         return
     left, right = st.columns([1, 1], gap="large")
     with left, st.container(border=True):
-        st.markdown("#### 最近一次分析 · 分类概率")
+        st.markdown("#### 最近一次分析 · 分类分数")
         if active is None:
             st.info("本会话还没有分析记录。可前往「影像工作台」导入影像并开始分析。")
         else:
@@ -618,13 +623,13 @@ def statistics_page():
             suffix = "（已按时间范围筛选）" if len(filtered) != len(rows) else ""
             st.caption(f"共 {len(filtered)} 个案例{suffix}。分类来自模型预测标签，需专业人员复核。")
     with st.container(border=True):
-        st.markdown("#### 多张影像 · 概率对比")
+        st.markdown("#### 多张影像 · 分数对比")
         compare = _comparison_records(limit=8)
         if len(compare) < 2:
-            st.info("完成至少两次影像分析后，这里会展示多张影像的分类概率对比。")
+            st.info("完成至少两次影像分析后，这里会展示多张影像的分类分数对比。")
         else:
             st.pyplot(multi_image_probability_chart(compare))
-            st.caption("每条代表一张影像，四色柱子为该影像四个类别的相对概率。分数未经概率校准。")
+            st.caption("每条代表一张影像，四色柱子为该影像四个类别的相对匹配分数。分数未经概率校准。")
     st.caption("分数为四类之间的相对匹配程度，未经概率校准，不是患病概率。")
 
 
@@ -638,7 +643,7 @@ feature_pages = {
     "cases": st.Page(archive_page, title="案例库", icon=":material/folder_open:", url_path="cases"),
     "compare": st.Page(image_comparison_page, title="影像对比", icon=":material/compare:", url_path="compare"),
     "statistics": st.Page(statistics_page, title="统计分析", icon=":material/bar_chart:", url_path="statistics"),
-    "consultation": st.Page(health_page, title="健康问诊", icon=":material/forum:", url_path="consultation"),
+    "consultation": st.Page(health_page, title="辅助诊断", icon=":material/forum:", url_path="consultation"),
 }
 help_page = st.Page(guide_page, title="使用帮助", icon=":material/help:", url_path="guide")
 page = st.navigation([home_page, *feature_pages.values(), help_page], position="hidden")

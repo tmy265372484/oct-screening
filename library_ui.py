@@ -3,11 +3,13 @@ from html import escape
 import streamlit as st
 from case_library import list_cases, load_case, save_case, update_note, delete_case
 from config import CLASS_CN
+from access_control import auth_mode
+from clinical_review import review_panel
 from viewer_features import annotation_editor, annotated_image, validate_annotations
 
 def library_page(banner,canvas,downloads,image_uri):
     banner("案例库", "每一次分析都有记录 · 影像、结果与备注完整回看")
-    st.caption("案例保存在本机，刷新页面后仍可查看。当前为单机共享案例库，请勿在公共电脑导入可识别个人身份的资料。")
+    st.caption("案例保存在服务器的账号专属存储中，仅当前登录账号可访问。" if auth_mode() != "local" else "案例保存在本机，刷新页面后仍可查看。当前为单机共享案例库，请勿在公共电脑导入可识别个人身份的资料。")
     search,filtercol=st.columns([3,1])
     query=search.text_input("搜索案例",placeholder="输入文件名、案例编号或备注",key="library_search")
     category=filtercol.selectbox("分类筛选",["全部","CNV","DME","DRUSEN","NORMAL"])
@@ -51,7 +53,7 @@ def library_page(banner,canvas,downloads,image_uri):
                     except Exception:
                         st.error("标注暂未保存，请检查本机磁盘空间或权限。")
         with details,st.container(border=True):
-            st.badge("待专业人员复核",color="orange")
+            review_panel(record, "library")
             st.subheader(record["prediction"]["predicted_label_cn"])
             st.metric("模型匹配分数",f'{record["prediction"]["model_score"]:.2%}')
             for name,value in sorted(record["prediction"]["probabilities"].items(),key=lambda x:x[1],reverse=True):
@@ -91,7 +93,7 @@ def library_page(banner,canvas,downloads,image_uri):
             st.markdown("**"+escape(row["source"])+"**")
             st.caption(row["created"][:19].replace("T"," "))
             st.badge(CLASS_CN[row["category"]],color="blue")
-            st.caption("模型匹配 "+f'{record["prediction"]["model_score"]:.2%}'+" · 待复核")
+            st.caption("模型匹配 "+f'{record["prediction"]["model_score"]:.2%}'+(" · 已记录复核" if record.get("reviews") else " · 待复核"))
             if st.button("查看案例详情",key="case_"+row["id"],width="stretch"):
                 st.session_state["library_selected"]=row["id"]
                 st.rerun()

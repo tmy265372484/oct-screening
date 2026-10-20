@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 from PIL import Image
 from case_library import save_case,load_case,list_cases,update_note,delete_case
-from health_guide import reply
+from health_guide import reply, generate_answer
 
 class CaseArchiveTests(unittest.TestCase):
     def test_roundtrip_search_update_and_delete_across_connections(self):
@@ -30,7 +30,7 @@ class HealthGuideTests(unittest.TestCase):
     def test_red_flag_precedes_normal_class_and_treatment_request(self):
         self.assertIn("急诊",reply("突然看不见，吃什么药",category="NORMAL"))
     def test_treatment_is_general_not_prescription(self):
-        self.assertIn("不是个人处方",reply("治疗方案",category="CNV"))
-        self.assertIn("不能由本系统决定",reply("治疗方案",category="CNV"))
+        self.assertIn("单靠模型分类不能决定方案",reply("治疗方案",category="CNV"))
+        self.assertIn("先别自行改药",reply("治疗方案",category="CNV"))
     def test_unknown_question_discloses_local_rule_limit(self):
-        self.assertIn("本地规则问答",reply("请帮我检查眼睛"))
+        self.assertIn("本地规则参考",generate_answer("请帮我检查眼睛",[],None,""))

@@ -30,7 +30,7 @@ await p.locator('.st-key-glass_card_workspace').hover();
 if(await p.locator('.st-key-glass_card_workspace').evaluate(e=>getComputedStyle(e).animationName)!=='none')throw Error('Reduced motion not respected');
 await p.mouse.move(10,100);await p.emulateMedia({reducedMotion:'no-preference'});
 await shot('26_空间玻璃首页1920.png');
-for(const [name,route,id] of [['影像工作台','workspace','27'],['案例库','cases','28'],['影像对比','compare','29'],['统计分析','statistics','30'],['健康问诊','consultation','31']]){
+for(const [name,route,id] of [['影像工作台','workspace','27'],['案例库','cases','28'],['影像对比','compare','29'],['统计分析','statistics','30'],['辅助诊断','consultation','31']]){
  await p.getByRole('link',{name:new RegExp('进入'+name)}).click();
  await p.waitForURL('**/'+route);
  const ready={workspace:/开始分析/,cases:/搜索案例/,compare:/影像对比/,statistics:/统计分析/,consultation:/清空对话/};

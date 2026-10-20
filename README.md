@@ -2,7 +2,7 @@
 
 全国大学生数字媒体科技作品及创意竞赛参赛项目。电脑端 Streamlit 工作台，使用已训练的 PyTorch ResNet50 做 CNV / DME / DRUSEN / NORMAL 四分类，提供真实 Grad-CAM 关注图与可下载报告草稿。
 
-![电脑端真实运行界面](screenshots/18_用户端对照阅片.png)
+![电脑端真实运行界面](screenshots/26_空间玻璃首页1920.png)
 
 ## 已实现
 
@@ -13,8 +13,10 @@
 - 带检查编号、四类分数、原图、关注图和阅片备注的离线 HTML / Markdown 报告。HTML 图片内嵌，可用浏览器打印为 PDF；训练指标不进入用户报告。
 - 本机持久化案例库：分析后自动保存影像预览、关注图、类别分数及来源指纹，支持搜索、分类、详情、保存备注、报告下载及确认删除。关闭浏览器后仍可查看。
 - 上传图片、体验示例，以及根目录 `example/` 图库选图，均执行真实推理。
-- 健康咨询：明确标注的本地规则问答，可关联案例、解释分类、介绍一般治疗方向、提示紧急就医情形和导出咨询记录；不冒充医生、不生成个体处方。
-- 研发资料保留在独立的 `research_app.py` 中：真实训练摘要、曲线、混淆矩阵与数据审计。用户端导航包含影像工作台、案例库、健康咨询、使用帮助。
+- 辅助诊断：DeepSeek 参考回答与明确标注的本地回退，病例摘要经确认后发送，不自动发送原图和文件名。
+- 人工复核：确认、修正或暂不能判断，追加保存复核依据与版本，报告保留模型提示和人工意见。
+- 本机账号：注册、登录、退出、密码加盐哈希、会话过期和失败尝试限制；病例与复核记录按账号独立保存。
+- 五入口统一玻璃界面：影像工作台、案例库、影像对比、统计分析、辅助诊断。研发资料保留在独立的 `research_app.py`。
 
 这是研究与比赛演示系统。模型分数是未经校准的 softmax 输出，不代表患病概率；Grad-CAM 是模型关注区域，不是病灶边界、分割或严重程度。分类和报告需由专业人员结合完整检查复核。NORMAL 也不能排除其他疾病。
 
@@ -29,10 +31,14 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 New-Item -ItemType Directory -Force models/torch_resume
 # 从队长处取得可信 best.pt，放到 models/torch_resume/best.pt
-.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
+.\start_login.bat
 ```
 
-打开终端显示的 `http://127.0.0.1:8501`。默认仅本机可访问；开放网络访问需要另行设计权限与部署。
+打开 `http://127.0.0.1:8502`，首次选择“注册账号”后登录。已有项目先 `git pull origin main`，再重新安装依赖并重启服务。
+
+`start_login.bat` 优先使用项目 `.venv`，否则使用已安装的 Python 3.11。只启动系统，不训练模型。账户数据库位于 `outputs/auth/`，各账号病例位于 `outputs/accounts/`，均不提交仓库。原共享病例文件保持原样，不会自动归属新账号。每台电脑的数据独立，不会跨电脑同步。
+
+需要手动启动时，在 PowerShell 设置 `$env:OCT_AUTH_MODE="accounts"`、`$env:OCT_DEPLOYED="0"`，再执行 `python -m streamlit run streamlit_app.py --server.address=127.0.0.1 --server.port=8502`。直接运行主文件而未设置账号模式仍是旧单机模式。不要将本机演示服务直接开放公网。
 
 模型权重约 90 MB / 个，数据集、日志和运行状态不提交 GitHub。缺少权重时界面显示配置提示，不能运行分析。四张脱敏命名的演示切片在 `assets/demo/`，用于功能展示，不是新测试集。
 
@@ -42,7 +48,7 @@ New-Item -ItemType Directory -Force models/torch_resume
 
 ## 命令行实验
 
-研发档案独立启动：`python -m streamlit run research_app.py --server.port 8502`。
+研发档案独立启动：`python -m streamlit run research_app.py --server.port 8503`。
 用户端设计参考与边界见 [桌面工作站设计依据](docs/桌面工作站设计依据.md)。
 
 ```powershell
@@ -100,5 +106,6 @@ python -m unittest discover -s tests -v
 | 太梦洋（队长） | 建立仓库、下载数据集、数据预处理、训练模型 |
 | 刘坤 | 查找文献、做系统 |
 | 孙国宏 | 设计 UI 界面、设计功能 |
+| 李琳 | 制作PPT、整合参赛材料、查看重要信息 |
 
 开始协作前先 `git pull`，提交前检查 `git status`，只提交代码、说明和审核后的截图。

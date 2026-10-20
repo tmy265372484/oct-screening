@@ -88,6 +88,9 @@ class RealModelUIWorkflowTests(unittest.TestCase):
 
         app = AppTest.from_file(str(ROOT / "streamlit_app.py"), default_timeout=60).run()
         self.assertEqual(len(app.exception), 0)
+        # AppTest cannot click callable st.Page links; use the registered page hash.
+        app._page_hash = next(x.proto.page_script_hash for x in app.get("page_link") if x.proto.page == "workspace")
+        app.run()
         self.assertTrue(app.button(key="run_analysis").disabled)
         app.session_state["source_choice"] = "体验示例"
         app.run()
@@ -123,7 +126,8 @@ class RealModelUIWorkflowTests(unittest.TestCase):
 
         app.selectbox(key="example_class").select("DME").run()
         self.assertEqual(len(app.exception), 0)
-        self.assertTrue(any("上一次分析结果" in element.value for element in app.warning))
+        self.assertTrue(any("当前切片尚未分析" in element.value for element in app.info))
+        self.assertFalse(any(x.label == "导出完整报告" for x in app.get("download_button")))
         self.assertEqual(app.session_state["active_record"]["case_id"], case_id)
         self.assertEqual(app.session_state["active_record"]["source_sha256"], record["source_sha256"])
 
